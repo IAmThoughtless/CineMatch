@@ -32,6 +32,7 @@ public class HelloApplication extends Application {
         logoLabel.setEffect(shadow);
 
         Button homeBtn = new Button("Home Page");
+        homeBtn.setOnAction(event -> {showHomeView();});
         homeBtn.setStyle("-fx-background-color: transparent; -fx-text-fill: white; -fx-font-size: 14px; -fx-font-weight: bold; -fx-cursor: hand;");
         makeButtonAnimated(homeBtn, false);
 
