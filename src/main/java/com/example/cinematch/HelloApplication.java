@@ -118,6 +118,7 @@ public class HelloApplication extends Application {
 
         Label registerLink = new Label("New to CineMatch? Sign up now.");
         registerLink.setStyle("-fx-text-fill: #cccccc; -fx-cursor: hand;");
+        registerLink.setOnMouseClicked( event -> {showRegisterView();});
         registerLink.setOnMouseEntered(e -> registerLink.setStyle("-fx-text-fill: white; -fx-underline: true;"));
         registerLink.setOnMouseExited(e -> registerLink.setStyle("-fx-text-fill: #cccccc; -fx-underline: false;"));
 
@@ -129,6 +130,50 @@ public class HelloApplication extends Application {
         loginForm.setStyle("-fx-background-color: rgba(0, 0, 0, 0.75); -fx-background-radius: 10;");
 
         root.setCenter(loginForm);
+    }
+    private void showRegisterView() {
+        Label regTitle = new Label("Create Account");
+        regTitle.setStyle("-fx-text-fill: white; -fx-font-size: 28px; -fx-font-weight: bold;");
+
+        TextField emailField = new TextField();
+        emailField.setPromptText("Email Address");
+        emailField.setPrefHeight(40);
+        emailField.setStyle("-fx-background-radius: 5; -fx-background-color: #333; -fx-text-fill: white;");
+
+        TextField userField = new TextField();
+        userField.setPromptText("Username");
+        userField.setPrefHeight(40);
+        userField.setStyle("-fx-background-radius: 5; -fx-background-color: #333; -fx-text-fill: white;");
+
+        PasswordField passField = new PasswordField();
+        passField.setPromptText("Password");
+        passField.setPrefHeight(40);
+        passField.setStyle("-fx-background-radius: 5; -fx-background-color: #333; -fx-text-fill: white;");
+
+        PasswordField confirmPassField = new PasswordField();
+        confirmPassField.setPromptText("Confirm Password");
+        confirmPassField.setPrefHeight(40);
+        confirmPassField.setStyle("-fx-background-radius: 5; -fx-background-color: #333; -fx-text-fill: white;");
+
+        Button registerBtn = new Button("Sign Up");
+        registerBtn.setPrefWidth(300);
+        registerBtn.setPrefHeight(40);
+        registerBtn.setStyle("-fx-background-color: #E50914; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: 5;");
+
+
+        Label loginLink = new Label("Already have an account? Sign in.");
+        loginLink.setStyle("-fx-text-fill: #cccccc; -fx-cursor: hand;");
+        loginLink.setOnMouseClicked(e -> showLoginView());
+        loginLink.setOnMouseEntered(e -> loginLink.setStyle("-fx-text-fill: white; -fx-underline: true;"));
+        loginLink.setOnMouseExited(e -> loginLink.setStyle("-fx-text-fill: #cccccc; -fx-underline: false;"));
+
+        VBox regForm = new VBox(20, regTitle, emailField, userField, passField, confirmPassField, registerBtn, loginLink);
+        regForm.setAlignment(Pos.CENTER);
+        regForm.setPadding(new Insets(40));
+        regForm.setMaxWidth(400);
+        regForm.setStyle("-fx-background-color: rgba(0, 0, 0, 0.75); -fx-background-radius: 10;");
+
+        root.setCenter(regForm);
     }
 
 }
