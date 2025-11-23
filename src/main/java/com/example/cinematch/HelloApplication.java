@@ -40,20 +40,20 @@ public class HelloApplication extends Application {
 
         Button homeBtn = new Button("Home Page");
         homeBtn.setStyle("-fx-background-color: transparent; -fx-text-fill: white; -fx-font-size: 14px; -fx-font-weight: bold; -fx-cursor: hand;");
-
+        makeButtonAnimated(homeBtn, false);
 
         Button top10Btn = new Button("Top 10");
         top10Btn.setStyle("-fx-background-color: transparent; -fx-text-fill: white; -fx-font-size: 14px; -fx-font-weight: bold; -fx-cursor: hand;");
-
+        makeButtonAnimated(top10Btn, false );
 
         Button loginBtn = new Button("Login / Register");
         loginBtn.setOnAction(event -> {showLoginView();});
         loginBtn.setStyle("-fx-background-color: #E50914; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: 5;");
-
+        makeButtonAnimated(loginBtn, true);
 
         Button QuizBtn = new Button("Quiz");
         QuizBtn.setStyle("-fx-background-color: transparent; -fx-text-fill: white; -fx-font-size: 14px; -fx-font-weight: bold; -fx-cursor: hand; ");
-
+        makeButtonAnimated(QuizBtn, false);
 
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
@@ -170,6 +170,7 @@ public class HelloApplication extends Application {
                 }
             }).start();
         });
+        makeButtonAnimated(signInBtn, true);
 
         Label registerLink = new Label("New to CineMatch? Sign up now.");
         registerLink.setStyle("-fx-text-fill: #cccccc; -fx-cursor: hand;");
@@ -270,6 +271,7 @@ public class HelloApplication extends Application {
                 }
             }).start();
         });
+        makeButtonAnimated(registerBtn, true);
 
         Label loginLink = new Label("Already have an account? Sign in.");
         loginLink.setStyle("-fx-text-fill: #cccccc; -fx-cursor: hand;");
@@ -284,6 +286,27 @@ public class HelloApplication extends Application {
         regForm.setStyle("-fx-background-color: rgba(0, 0, 0, 0.75); -fx-background-radius: 10;");
 
         root.setCenter(regForm);
+    }
+    private void makeButtonAnimated(Button btn, boolean isRedButton) {
+
+        btn.setOnMouseEntered(e -> {
+            btn.setScaleX(1.10);
+            btn.setScaleY(1.10);
+            if (isRedButton) {
+
+                btn.setStyle("-fx-background-color: #ff1f2c; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: " + btn.getBackground().getFills().get(0).getRadii().getTopLeftHorizontalRadius() + ";");
+            }
+        });
+
+
+        btn.setOnMouseExited(e -> {
+            btn.setScaleX(1.0);
+            btn.setScaleY(1.0);
+            if (isRedButton) {
+
+                btn.setStyle("-fx-background-color: #E50914; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: " + btn.getBackground().getFills().get(0).getRadii().getTopLeftHorizontalRadius() + ";");
+            }
+        });
     }
 
 }
