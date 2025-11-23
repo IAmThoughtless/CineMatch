@@ -47,7 +47,6 @@ public class HelloApplication extends Application {
         makeButtonAnimated(top10Btn, false );
 
         Button loginBtn = new Button("Login / Register");
-        loginBtn.setOnAction(event -> {showLoginView();});
         loginBtn.setStyle("-fx-background-color: #E50914; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: 5;");
         makeButtonAnimated(loginBtn, true);
 
