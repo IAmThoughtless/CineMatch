@@ -65,6 +65,35 @@ public class HelloApplication extends Application {
         primaryStage.setTitle("CineMatch App");
         primaryStage.setScene(scene);
         primaryStage.show();
+
+        showHomeView();
+    }
+
+    private void showHomeView() {
+        Label welcomeLabel = new Label("Welcome to CineMatch");
+        welcomeLabel.setStyle("-fx-text-fill: white; -fx-font-size: 36px; -fx-font-weight: bold;");
+
+        Label subTitle = new Label("Search for your favourite movie or actor/actress");
+        subTitle.setStyle("-fx-text-fill: #cccccc; -fx-font-size: 18px;");
+
+        TextField searchField = new TextField();
+        searchField.setPromptText("Search...");
+        searchField.setPrefSize(300, 40);
+        searchField.setStyle("-fx-background-color: white; -fx-font-size: 14px; -fx-background-radius: 20 0 0 20; -fx-padding: 0 15;");
+
+        Button searchButton = new Button("Search");
+        searchButton.setPrefSize(120, 40);
+        searchButton.setStyle("-fx-background-color: #E50914; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: 0 20 20 0;");
+
+
+        HBox searchBox = new HBox(0, searchField, searchButton);
+        searchBox.setAlignment(Pos.CENTER);
+        VBox.setMargin(searchBox, new Insets(30, 0, 0, 0));
+
+        VBox homeContent = new VBox(10, welcomeLabel, subTitle, searchBox);
+        homeContent.setAlignment(Pos.CENTER);
+
+        root.setCenter(homeContent);
     }
 }
 
