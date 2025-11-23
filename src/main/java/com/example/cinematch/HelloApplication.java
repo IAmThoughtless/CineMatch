@@ -40,6 +40,7 @@ public class HelloApplication extends Application {
 
 
         Button loginBtn = new Button("Login / Register");
+        loginBtn.setOnAction(event -> {showLoginView();});
         loginBtn.setStyle("-fx-background-color: #E50914; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: 5;");
 
 
@@ -95,5 +96,40 @@ public class HelloApplication extends Application {
 
         root.setCenter(homeContent);
     }
+    private void showLoginView() {
+        Label loginTitle = new Label("Sign In");
+        loginTitle.setStyle("-fx-text-fill: white; -fx-font-size: 28px; -fx-font-weight: bold;");
+
+        TextField usernameField = new TextField();
+        usernameField.setPromptText("Email or Username");
+        usernameField.setPrefHeight(40);
+        usernameField.setStyle("-fx-background-radius: 5; -fx-background-color: #333; -fx-text-fill: white;");
+
+        PasswordField passwordField = new PasswordField();
+        passwordField.setPromptText("Password");
+        passwordField.setPrefHeight(40);
+        passwordField.setStyle("-fx-background-radius: 5; -fx-background-color: #333; -fx-text-fill: white;");
+
+        Button signInBtn = new Button("Sign In");
+        signInBtn.setPrefWidth(300);
+        signInBtn.setPrefHeight(40);
+        signInBtn.setStyle("-fx-background-color: #E50914; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: 5;");
+
+
+        Label registerLink = new Label("New to CineMatch? Sign up now.");
+        registerLink.setStyle("-fx-text-fill: #cccccc; -fx-cursor: hand;");
+        registerLink.setOnMouseEntered(e -> registerLink.setStyle("-fx-text-fill: white; -fx-underline: true;"));
+        registerLink.setOnMouseExited(e -> registerLink.setStyle("-fx-text-fill: #cccccc; -fx-underline: false;"));
+
+        VBox loginForm = new VBox(20, loginTitle, usernameField, passwordField, signInBtn, registerLink);
+        loginForm.setAlignment(Pos.CENTER);
+        loginForm.setPadding(new Insets(20, 20, 20, 20));
+        loginForm.setMaxWidth(400);
+        loginForm.setMaxHeight(300);
+        loginForm.setStyle("-fx-background-color: rgba(0, 0, 0, 0.75); -fx-background-radius: 10;");
+
+        root.setCenter(loginForm);
+    }
+
 }
 
