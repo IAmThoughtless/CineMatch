@@ -8,23 +8,38 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import javafx.application.Platform;
 import javafx.application.Application;
+import javafx.application.Platform;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
+import javafx.scene.control.Button;
+import javafx.scene.control.Label;
+import javafx.scene.control.ScrollPane;
+import javafx.scene.control.TextField;
 import javafx.scene.effect.DropShadow;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import javafx.stage.Stage;
+import javafx.scene.image.ImageView;
+import javafx.scene.image.Image;
+
+
+import java.awt.*;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.util.concurrent.CompletableFuture;
 
 
 public class HelloApplication extends Application {
 
 
     private BorderPane root;
-
+    private final String TMDB_API_KEY = "71890bc04b3c153a8abf55ea6cdfbe46";
     public void start(Stage primaryStage) {
 
         root=new BorderPane();
@@ -43,10 +58,12 @@ public class HelloApplication extends Application {
         makeButtonAnimated(homeBtn, false);
 
         Button top10Btn = new Button("Top 10");
+        top10Btn.setOnAction(event -> {showTop10View();});
         top10Btn.setStyle("-fx-background-color: transparent; -fx-text-fill: white; -fx-font-size: 14px; -fx-font-weight: bold; -fx-cursor: hand;");
         makeButtonAnimated(top10Btn, false );
 
         Button loginBtn = new Button("Login / Register");
+        loginBtn.setOnAction(event -> {showLoginView();});
         loginBtn.setStyle("-fx-background-color: #E50914; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: 5;");
         makeButtonAnimated(loginBtn, true);
 
@@ -72,6 +89,8 @@ public class HelloApplication extends Application {
         primaryStage.setTitle("CineMatch App");
         primaryStage.setScene(scene);
         primaryStage.show();
+
+        showHomeView();
 
         showHomeView();
     }
@@ -186,6 +205,275 @@ public class HelloApplication extends Application {
 
         root.setCenter(loginForm);
     }
+
+    private void showTop10View() {
+        // Show loading indicator immediately (to prevent UI freeze)
+        Label loadingLabel = new Label("Fetching Top 10 Movies...");
+        loadingLabel.setStyle("-fx-text-fill: white; -fx-font-size: 24px;");
+        ProgressIndicator indicator = new ProgressIndicator();
+        VBox loadingBox = new VBox(20, loadingLabel, indicator);
+        loadingBox.setAlignment(Pos.CENTER);
+        root.setCenter(loadingBox);
+
+        // Run API call in the background
+        CompletableFuture.supplyAsync(this::fetchTopMovies)
+                .thenAccept(movieResponse -> {
+                    // Update UI on the JavaFX Application Thread
+                    Platform.runLater(() -> {
+                        if (movieResponse != null && movieResponse.results != null) {
+                            VBox top10Content = buildTop10UI(movieResponse);
+                            root.setCenter(top10Content);
+                        } else {
+                            Label errorLabel = new Label("Could not fetch top movies. Check API key and network connection.");
+                            errorLabel.setStyle("-fx-text-fill: red; -fx-font-size: 18px;");
+                            VBox errorBox = new VBox(errorLabel);
+                            errorBox.setAlignment(Pos.CENTER);
+                            root.setCenter(errorBox);
+                        }
+                    });
+                });
+    }
+
+    private MovieResponse fetchTopMovies() {
+        String url = "https://api.themoviedb.org/3/movie/popular?api_key=" + TMDB_API_KEY;
+
+        try {
+            HttpClient client = HttpClient.newHttpClient();
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(url))
+                    .build();
+
+            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+            if (response.statusCode() != 200) {
+                System.err.println("API Request failed with status: " + response.statusCode());
+                return null;
+            }
+
+            Gson gson = new Gson();
+            return gson.fromJson(response.body(), MovieResponse.class);
+
+        } catch (Exception e) {
+            System.err.println("Error during API call: " + e.getMessage());
+            return null;
+        }
+    }
+
+    private VBox buildTop10UI(MovieResponse movieResponse) {
+
+        Label titleLabel = new Label("⭐ Top 10 Popular Movies ⭐");
+        titleLabel.setStyle("-fx-text-fill: #E50914; -fx-font-size: 32px; -fx-font-weight: bold;");
+
+        VBox movieListView = new VBox(15);
+        movieListView.setPadding(new Insets(30));
+        movieListView.setAlignment(Pos.TOP_CENTER);
+        movieListView.setMaxWidth(800);
+
+        int limit = Math.min(10, movieResponse.results.size());
+
+        for (int i = 0; i < limit; i++) {
+            Movie m = movieResponse.results.get(i);
+
+            ImageView posterView = createPosterImageView(m.poster_path);
+
+            Label rank = new Label("#" + (i + 1));
+            rank.setFont(Font.font("Verdana", FontWeight.EXTRA_BOLD, 30));
+            rank.setStyle("-fx-text-fill: #ccc;");
+
+            Label movieTitle = new Label(m.title);
+            movieTitle.setStyle("-fx-text-fill: white; -fx-font-size: 20px; -fx-font-weight: bold;");
+
+            Label movieDetails = new Label(
+                    String.format("Rating: %.1f/10 (%d votes) | Release: %s",
+                            m.vote_average, m.vote_count, m.release_date));
+            movieDetails.setStyle("-fx-text-fill: #aaa; -fx-font-size: 14px;");
+
+            Label overview = new Label(
+                    (m.overview.length() > 140 ? m.overview.substring(0, 140) + "..." : m.overview));
+            overview.setWrapText(true);
+            overview.setStyle("-fx-text-fill: #ccc;");
+
+            VBox textContent = new VBox(5, movieTitle, movieDetails, overview);
+
+            HBox movieCard = new HBox(20.0, rank, posterView, textContent);
+            movieCard.setAlignment(Pos.CENTER_LEFT);
+            HBox.setHgrow(textContent, Priority.ALWAYS);
+
+            movieListView.getChildren().add(movieCard);
+
+            if (i < limit - 1) {
+                Region separator = new Region();
+                separator.setPrefHeight(1);
+                separator.setStyle("-fx-background-color: #333;");
+                movieListView.getChildren().add(separator);
+            }
+        }
+
+        ScrollPane scrollPane = new ScrollPane(movieListView);
+        scrollPane.setFitToWidth(true);
+        scrollPane.setStyle("-fx-background: transparent; -fx-background-color: transparent;");
+
+        VBox finalLayout = new VBox(20, titleLabel, scrollPane);
+        finalLayout.setPadding(new Insets(30));
+        finalLayout.setAlignment(Pos.TOP_CENTER);
+
+        return finalLayout;
+    }
+
+    private ImageView createPosterImageView(String posterPath) {
+        if (posterPath == null || posterPath.isEmpty()) {
+            ImageView placeholder = new ImageView();
+            placeholder.setFitWidth(100);
+            placeholder.setFitHeight(150);
+            return placeholder;
+        }
+
+        // Base URL for medium-sized posters
+        String baseUrl = "https://image.tmdb.org/t/p/w200";
+        String imageUrl = baseUrl + posterPath;
+
+        // Use the Image constructor designed for background loading
+        Image image = new Image(imageUrl, true);
+
+        ImageView imageView = new ImageView(image);
+        imageView.setFitWidth(100);
+        imageView.setFitHeight(150);
+
+        DropShadow shadow = new DropShadow();
+        shadow.setColor(Color.BLACK);
+        shadow.setRadius(5);
+        imageView.setEffect(shadow);
+
+        return imageView;
+    }
+
+    private void showHomeView() {
+        Label welcomeLabel = new Label("Welcome to CineMatch");
+        welcomeLabel.setStyle("-fx-text-fill: white; -fx-font-size: 36px; -fx-font-weight: bold;");
+
+        Label subTitle = new Label("Search for your favourite movie or actor/actress");
+        subTitle.setStyle("-fx-text-fill: #cccccc; -fx-font-size: 18px;");
+
+        TextField searchField = new TextField();
+        searchField.setPromptText("Search...");
+        searchField.setPrefSize(300, 40);
+        searchField.setStyle("-fx-background-color: white; -fx-font-size: 14px; -fx-background-radius: 20 0 0 20; -fx-padding: 0 15;");
+
+        Button searchButton = new Button("Search");
+        searchButton.setPrefSize(120, 40);
+        searchButton.setStyle("-fx-background-color: #E50914; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: 0 20 20 0;");
+
+
+        HBox searchBox = new HBox(0, searchField, searchButton);
+        searchBox.setAlignment(Pos.CENTER);
+        VBox.setMargin(searchBox, new Insets(30, 0, 0, 0));
+
+        VBox homeContent = new VBox(10, welcomeLabel, subTitle, searchBox);
+        homeContent.setAlignment(Pos.CENTER);
+
+        root.setCenter(homeContent);
+    }
+    private void showLoginView() {
+        Label loginTitle = new Label("Sign In");
+        loginTitle.setStyle("-fx-text-fill: white; -fx-font-size: 28px; -fx-font-weight: bold;");
+
+        TextField usernameField = new TextField();
+        usernameField.setPromptText("Email or Username");
+        usernameField.setPrefHeight(40);
+        usernameField.setStyle("-fx-background-radius: 5; -fx-background-color: #333; -fx-text-fill: white;");
+
+        PasswordField passwordField = new PasswordField();
+        passwordField.setPromptText("Password");
+        passwordField.setPrefHeight(40);
+        passwordField.setStyle("-fx-background-radius: 5; -fx-background-color: #333; -fx-text-fill: white;");
+
+        Button signInBtn = new Button("Sign In");
+        signInBtn.setPrefWidth(300);
+        signInBtn.setPrefHeight(40);
+        signInBtn.setStyle("-fx-background-color: #E50914; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: 5;");
+        makeButtonAnimated(signInBtn, true);
+
+        Label registerLink = new Label("New to CineMatch? Sign up now.");
+        registerLink.setStyle("-fx-text-fill: #cccccc; -fx-cursor: hand;");
+        registerLink.setOnMouseClicked( event -> {showRegisterView();});
+        registerLink.setOnMouseEntered(e -> registerLink.setStyle("-fx-text-fill: white; -fx-underline: true;"));
+        registerLink.setOnMouseExited(e -> registerLink.setStyle("-fx-text-fill: #cccccc; -fx-underline: false;"));
+
+        VBox loginForm = new VBox(20, loginTitle, usernameField, passwordField, signInBtn, registerLink);
+        loginForm.setAlignment(Pos.CENTER);
+        loginForm.setPadding(new Insets(20, 20, 20, 20));
+        loginForm.setMaxWidth(400);
+        loginForm.setMaxHeight(300);
+        loginForm.setStyle("-fx-background-color: rgba(0, 0, 0, 0.75); -fx-background-radius: 10;");
+
+        root.setCenter(loginForm);
+    }
+    private void showRegisterView() {
+        Label regTitle = new Label("Create Account");
+        regTitle.setStyle("-fx-text-fill: white; -fx-font-size: 28px; -fx-font-weight: bold;");
+
+        TextField emailField = new TextField();
+        emailField.setPromptText("Email Address");
+        emailField.setPrefHeight(40);
+        emailField.setStyle("-fx-background-radius: 5; -fx-background-color: #333; -fx-text-fill: white;");
+
+        TextField userField = new TextField();
+        userField.setPromptText("Username");
+        userField.setPrefHeight(40);
+        userField.setStyle("-fx-background-radius: 5; -fx-background-color: #333; -fx-text-fill: white;");
+
+        PasswordField passField = new PasswordField();
+        passField.setPromptText("Password");
+        passField.setPrefHeight(40);
+        passField.setStyle("-fx-background-radius: 5; -fx-background-color: #333; -fx-text-fill: white;");
+
+        PasswordField confirmPassField = new PasswordField();
+        confirmPassField.setPromptText("Confirm Password");
+        confirmPassField.setPrefHeight(40);
+        confirmPassField.setStyle("-fx-background-radius: 5; -fx-background-color: #333; -fx-text-fill: white;");
+
+        Button registerBtn = new Button("Sign Up");
+        registerBtn.setPrefWidth(300);
+        registerBtn.setPrefHeight(40);
+        registerBtn.setStyle("-fx-background-color: #E50914; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: 5;");
+        makeButtonAnimated(registerBtn, true);
+
+        Label loginLink = new Label("Already have an account? Sign in.");
+        loginLink.setStyle("-fx-text-fill: #cccccc; -fx-cursor: hand;");
+        loginLink.setOnMouseClicked(e -> showLoginView());
+        loginLink.setOnMouseEntered(e -> loginLink.setStyle("-fx-text-fill: white; -fx-underline: true;"));
+        loginLink.setOnMouseExited(e -> loginLink.setStyle("-fx-text-fill: #cccccc; -fx-underline: false;"));
+
+        VBox regForm = new VBox(20, regTitle, emailField, userField, passField, confirmPassField, registerBtn, loginLink);
+        regForm.setAlignment(Pos.CENTER);
+        regForm.setPadding(new Insets(40));
+        regForm.setMaxWidth(400);
+        regForm.setStyle("-fx-background-color: rgba(0, 0, 0, 0.75); -fx-background-radius: 10;");
+
+        root.setCenter(regForm);
+    }
+    private void makeButtonAnimated(Button btn, boolean isRedButton) {
+
+        btn.setOnMouseEntered(e -> {
+            btn.setScaleX(1.10);
+            btn.setScaleY(1.10);
+            if (isRedButton) {
+
+                btn.setStyle("-fx-background-color: #ff1f2c; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: " + btn.getBackground().getFills().get(0).getRadii().getTopLeftHorizontalRadius() + ";");
+            }
+        });
+
+
+        btn.setOnMouseExited(e -> {
+            btn.setScaleX(1.0);
+            btn.setScaleY(1.0);
+            if (isRedButton) {
+
+                btn.setStyle("-fx-background-color: #E50914; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: " + btn.getBackground().getFills().get(0).getRadii().getTopLeftHorizontalRadius() + ";");
+            }
+        });
+    }
+
     private void showRegisterView() {
         Label regTitle = new Label("Create Account");
         regTitle.setStyle("-fx-text-fill: white; -fx-font-size: 28px; -fx-font-weight: bold;");
