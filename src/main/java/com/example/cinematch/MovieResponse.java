@@ -1,3 +1,5 @@
+package com.example.cinematch;
+
 import java.util.List;
 
 public class MovieResponse {

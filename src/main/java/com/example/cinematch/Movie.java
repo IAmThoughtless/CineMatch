@@ -1,3 +1,5 @@
+package com.example.cinematch;
+
 public class Movie {
     public int id;
     public String title;
