@@ -1,6 +1,5 @@
 package com.example.cinematch;
 
-import com.google.gson.Gson;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.geometry.Insets;
@@ -19,13 +18,8 @@ import javafx.scene.text.FontWeight;
 import javafx.stage.Stage;
 import javafx.scene.image.ImageView;
 import javafx.scene.image.Image;
+import javafx.scene.Cursor;
 
-
-import java.awt.*;
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
 import java.util.concurrent.CompletableFuture;
 
 
@@ -33,7 +27,6 @@ public class HelloApplication extends Application {
 
 
     private BorderPane root;
-    private final String TMDB_API_KEY = "71890bc04b3c153a8abf55ea6cdfbe46";
     public void start(Stage primaryStage) {
 
         root=new BorderPane();
@@ -96,9 +89,10 @@ public class HelloApplication extends Application {
         VBox loadingBox = new VBox(20, loadingLabel, indicator);
         loadingBox.setAlignment(Pos.CENTER);
         root.setCenter(loadingBox);
+        MovieService movieService = new MovieService();
 
         // Run API call in the background
-        CompletableFuture.supplyAsync(this::fetchTopMovies)
+        CompletableFuture.supplyAsync(movieService::fetchTopMovies)
                 .thenAccept(movieResponse -> {
                     // Update UI on the JavaFX Application Thread
                     Platform.runLater(() -> {
@@ -114,31 +108,6 @@ public class HelloApplication extends Application {
                         }
                     });
                 });
-    }
-
-    private MovieResponse fetchTopMovies() {
-        String url = "https://api.themoviedb.org/3/movie/popular?api_key=" + TMDB_API_KEY;
-
-        try {
-            HttpClient client = HttpClient.newHttpClient();
-            HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create(url))
-                    .build();
-
-            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-
-            if (response.statusCode() != 200) {
-                System.err.println("API Request failed with status: " + response.statusCode());
-                return null;
-            }
-
-            Gson gson = new Gson();
-            return gson.fromJson(response.body(), MovieResponse.class);
-
-        } catch (Exception e) {
-            System.err.println("Error during API call: " + e.getMessage());
-            return null;
-        }
     }
 
     private VBox buildTop10UI(MovieResponse movieResponse) {
@@ -158,10 +127,6 @@ public class HelloApplication extends Application {
 
             ImageView posterView = createPosterImageView(m.poster_path);
 
-            Label rank = new Label("#" + (i + 1));
-            rank.setFont(Font.font("Verdana", FontWeight.EXTRA_BOLD, 30));
-            rank.setStyle("-fx-text-fill: #ccc;");
-
             Label movieTitle = new Label(m.title);
             movieTitle.setStyle("-fx-text-fill: white; -fx-font-size: 20px; -fx-font-weight: bold;");
 
@@ -177,7 +142,7 @@ public class HelloApplication extends Application {
 
             VBox textContent = new VBox(5, movieTitle, movieDetails, overview);
 
-            HBox movieCard = new HBox(20.0, rank, posterView, textContent);
+            HBox movieCard = new HBox(20.0, posterView, textContent);
             movieCard.setAlignment(Pos.CENTER_LEFT);
             HBox.setHgrow(textContent, Priority.ALWAYS);
 
@@ -276,8 +241,9 @@ public class HelloApplication extends Application {
         makeButtonAnimated(signInBtn, true);
 
         Label registerLink = new Label("New to CineMatch? Sign up now.");
-        registerLink.setStyle("-fx-text-fill: #cccccc; -fx-cursor: hand;");
-        registerLink.setOnMouseClicked( event -> {showRegisterView();});
+        registerLink.setStyle("-fx-text-fill: #cccccc;");
+        registerLink.setCursor(Cursor.HAND);
+        registerLink.setOnMouseClicked( e -> {showRegisterView();});
         registerLink.setOnMouseEntered(e -> registerLink.setStyle("-fx-text-fill: white; -fx-underline: true;"));
         registerLink.setOnMouseExited(e -> registerLink.setStyle("-fx-text-fill: #cccccc; -fx-underline: false;"));
 
@@ -321,7 +287,8 @@ public class HelloApplication extends Application {
         makeButtonAnimated(registerBtn, true);
 
         Label loginLink = new Label("Already have an account? Sign in.");
-        loginLink.setStyle("-fx-text-fill: #cccccc; -fx-cursor: hand;");
+        loginLink.setStyle("-fx-text-fill: #cccccc;");
+        loginLink.setCursor(Cursor.HAND);
         loginLink.setOnMouseClicked(e -> showLoginView());
         loginLink.setOnMouseEntered(e -> loginLink.setStyle("-fx-text-fill: white; -fx-underline: true;"));
         loginLink.setOnMouseExited(e -> loginLink.setStyle("-fx-text-fill: #cccccc; -fx-underline: false;"));
@@ -341,7 +308,7 @@ public class HelloApplication extends Application {
             btn.setScaleY(1.10);
             if (isRedButton) {
 
-                btn.setStyle("-fx-background-color: #ff1f2c; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: " + btn.getBackground().getFills().get(0).getRadii().getTopLeftHorizontalRadius() + ";");
+                btn.setStyle("-fx-background-color: #ff1f2c; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: " + btn.getBackground().getFills().getFirst().getRadii().getTopLeftHorizontalRadius() + ";");
             }
         });
 
@@ -351,7 +318,7 @@ public class HelloApplication extends Application {
             btn.setScaleY(1.0);
             if (isRedButton) {
 
-                btn.setStyle("-fx-background-color: #E50914; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: " + btn.getBackground().getFills().get(0).getRadii().getTopLeftHorizontalRadius() + ";");
+                btn.setStyle("-fx-background-color: #E50914; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: " + btn.getBackground().getFills().getFirst().getRadii().getTopLeftHorizontalRadius() + ";");
             }
         });
     }
