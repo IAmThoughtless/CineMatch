@@ -4,7 +4,41 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="24badb3b-1ccc-4102-b799-a3f1f478e83d" name="Changes" comment="Testing and Code Cleanup">
+    <list default="true" id="3f5f972e-bac5-4f1d-869d-a463038ac483" name="Changes" comment="UI Commit">
+      <change afterPath="$PROJECT_DIR$/.idea/jarRepositories.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/CineMatch.iml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Main.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/xml/pom.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/xml/src/main/java/com/cinematch/CinematchApplication.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/xml/src/main/java/com/cinematch/config/SecurityConfig.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/xml/src/main/java/com/cinematch/controller/AuthController.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/xml/src/main/java/com/cinematch/model/User.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/xml/src/main/java/com/cinematch/model/UserDetailsImpl.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/xml/src/main/java/com/cinematch/payload/request/LoginRequest.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/xml/src/main/java/com/cinematch/payload/request/RegisterRequest.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/xml/src/main/java/com/cinematch/payload/response/JwtResponse.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/xml/src/main/java/com/cinematch/repository/InMemoryUserRepository.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/xml/src/main/java/com/cinematch/repository/UserRepository.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/xml/src/main/java/com/cinematch/security/AuthTokenFilter.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/xml/src/main/java/com/cinematch/service/UserDetailsServiceImpl.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/xml/src/main/java/com/cinematch/util/JwtUtils.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/xml/src/main/resources/application.properties" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/xml/target/classes/application.properties" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/xml/target/classes/com/cinematch/CinematchApplication.class" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/xml/target/classes/com/cinematch/config/SecurityConfig.class" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/xml/target/classes/com/cinematch/controller/AuthController.class" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/xml/target/classes/com/cinematch/model/User.class" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/xml/target/classes/com/cinematch/model/UserDetailsImpl.class" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/xml/target/classes/com/cinematch/payload/request/LoginRequest.class" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/xml/target/classes/com/cinematch/payload/request/RegisterRequest.class" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/xml/target/classes/com/cinematch/payload/response/JwtResponse.class" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/xml/target/classes/com/cinematch/repository/InMemoryUserRepository.class" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/xml/target/classes/com/cinematch/repository/UserRepository.class" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/xml/target/classes/com/cinematch/security/AuthTokenFilter.class" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/xml/target/classes/com/cinematch/service/UserDetailsServiceImpl.class" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/xml/target/classes/com/cinematch/util/JwtUtils.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/encodings.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/encodings.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
     </list>
@@ -13,95 +47,34 @@
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
     <option name="LAST_RESOLUTION" value="IGNORE" />
   </component>
-  <component name="FileTemplateManagerImpl">
-    <option name="RECENT_TEMPLATES">
-      <list>
-        <option value="Class" />
-      </list>
-    </option>
-  </component>
-  <component name="Git.Merge.Settings">
-    <option name="BRANCH" value="origin/master" />
-  </component>
-  <component name="Git.Rebase.Settings">
-    <option name="NEW_BASE" value="master" />
-  </component>
   <component name="Git.Settings">
     <option name="RECENT_BRANCH_BY_REPOSITORY">
       <map>
-        <entry key="$PROJECT_DIR$" value="animation" />
+        <entry key="$PROJECT_DIR$" value="main" />
       </map>
     </option>
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
-  <component name="GitHubPullRequestSearchHistory">{
-  &quot;lastFilter&quot;: {
-    &quot;state&quot;: &quot;OPEN&quot;,
-    &quot;assignee&quot;: &quot;IAmThoughtless&quot;
-  }
-}</component>
-  <component name="GithubPullRequestsUISettings">{
-  &quot;selectedUrlAndAccountId&quot;: {
-    &quot;url&quot;: &quot;https://github.com/IAmThoughtless/CineMatch.git&quot;,
-    &quot;accountId&quot;: &quot;1359cf11-826f-4972-ac2d-c26bc189795a&quot;
-  }
-}</component>
-  <component name="ProjectColorInfo">{
-  &quot;associatedIndex&quot;: 8
-}</component>
-  <component name="ProjectId" id="35tQBPtggs1IGbuFlH0Ajyyo3Za" />
-  <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
-  <component name="ProjectViewState">
-    <option name="hideEmptyMiddlePackages" value="true" />
-    <option name="showLibraryContents" value="true" />
-  </component>
   <component name="PropertiesComponent"><![CDATA[{
   "keyToString": {
-    "Application.HelloApplication.executor": "Run",
-    "Application.Launcher.executor": "Run",
-    "Application.Main.executor": "Run",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "RunOnceActivity.git.unshallow": "true",
-    "git-widget-placeholder": "main",
-    "kotlin-language-version-configured": "true",
-    "onboarding.tips.debug.path": "C:/Users/Ορέστης/IdeaProjects/CineMatch/src/main/java/TechnologiaLogismikou/Main.java",
-    "project.structure.last.edited": "Modules",
-    "project.structure.proportion": "0.15",
-    "project.structure.side.proportion": "0.2",
-    "settings.editor.selected.configurable": "reference.projectsettings.compiler.javacompiler"
+    "git-widget-placeholder": "Rebasing main",
+    "node.js.selected.package.tslint": "(autodetect)"
   }
 }]]></component>
-  <component name="RecentsManager">
-    <key name="MoveClassesOrPackagesDialog.RECENTS_KEY">
-      <recent name="com.example.cinematch" />
-    </key>
+  <component name="RunManager">
+    <configuration default="true" type="JetRunConfigurationType">
+      <module name="CineMatch" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration default="true" type="KotlinStandaloneScriptRunConfigurationType">
+      <module name="CineMatch" />
+      <option name="filePath" />
+      <method v="2" />
+    </configuration>
   </component>
-  <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
   <component name="TaskManager">
-    <task active="true" id="Default" summary="Default task">
-      <changelist id="24badb3b-1ccc-4102-b799-a3f1f478e83d" name="Changes" comment="" />
-      <created>1763926754091</created>
-      <option name="number" value="Default" />
-      <option name="presentableId" value="Default" />
-      <updated>1763926754091</updated>
-    </task>
-    <task id="LOCAL-00001" summary="UI Commit">
-      <option name="closed" value="true" />
-      <created>1763986544004</created>
-      <option name="number" value="00001" />
-      <option name="presentableId" value="LOCAL-00001" />
-      <option name="project" value="LOCAL" />
-      <updated>1763986544004</updated>
-    </task>
-    <task id="LOCAL-00002" summary="Testing and Code Cleanup">
-      <option name="closed" value="true" />
-      <created>1764066677111</created>
-      <option name="number" value="00002" />
-      <option name="presentableId" value="LOCAL-00002" />
-      <option name="project" value="LOCAL" />
-      <updated>1764066677111</updated>
-    </task>
-    <option name="localTasksCounter" value="3" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -109,27 +82,10 @@
       <map>
         <entry key="MAIN">
           <value>
-            <State>
-              <option name="FILTERS">
-                <map>
-                  <entry key="branch">
-                    <value>
-                      <list>
-                        <option value="animation" />
-                      </list>
-                    </value>
-                  </entry>
-                </map>
-              </option>
-            </State>
+            <State />
           </value>
         </entry>
       </map>
     </option>
-  </component>
-  <component name="VcsManagerConfiguration">
-    <MESSAGE value="UI Commit" />
-    <MESSAGE value="Testing and Code Cleanup" />
-    <option name="LAST_COMMIT_MESSAGE" value="Testing and Code Cleanup" />
   </component>
 </project>
