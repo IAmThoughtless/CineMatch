@@ -2,11 +2,20 @@
 <project version="4">
   <component name="CompilerConfiguration">
     <annotationProcessing>
+ SearchBarExtras
+
+      <profile default="true" name="Default" enabled="true" />
+ main
       <profile name="Maven default annotation processors profile" enabled="true">
         <sourceOutputDir name="target/generated-sources/annotations" />
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />
+ SearchBarExtras
         <module name="cinematch-client" />
+
+        <module name="CineMatch" />
+        <module name="demo5" />
+ main
       </profile>
     </annotationProcessing>
   </component>
