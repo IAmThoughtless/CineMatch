@@ -10,7 +10,10 @@ module com.example.cinematch {
     requires org.kordamp.bootstrapfx.core;
     requires eu.hansolo.tilesfx;
     requires com.almasb.fxgl.all;
+    requires java.net.http;
+    requires com.google.gson;
 
-    opens com.example.cinematch to javafx.fxml;
     exports com.example.cinematch;
+    opens com.example.cinematch to javafx.fxml, com.google.gson;
+
 }

@@ -1,5 +1,12 @@
 package com.example.cinematch;
 
+import com.google.gson.Gson;
+import java.io.IOException;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import javafx.application.Platform;
 import javafx.application.Application;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -115,6 +122,54 @@ public class HelloApplication extends Application {
         signInBtn.setPrefHeight(40);
         signInBtn.setStyle("-fx-background-color: #E50914; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: 5;");
 
+        // Ετικέτα για την εμφάνιση μηνυμάτων
+        Label messageLabel = new Label("");
+        messageLabel.setStyle("-fx-text-fill: yellow; -fx-font-weight: bold;");
+
+
+        signInBtn.setOnAction(event -> {
+            signInBtn.setDisable(true);
+
+            String username = usernameField.getText();
+            String password = passwordField.getText();
+
+            // **Λογική Κλήσης Backend**
+            new Thread(() -> {
+                try {
+                    User user = new User(username, password);
+                    String jsonBody = new Gson().toJson(user);
+
+                    HttpClient client = HttpClient.newHttpClient();
+                    HttpRequest request = HttpRequest.newBuilder()
+                            .uri(URI.create("http://localhost:8080/api/auth/login")) // Εδώ "μιλάς" στο Spring Boot
+                            .header("Content-Type", "application/json")
+                            .POST(HttpRequest.BodyPublishers.ofString(jsonBody))
+                            .build();
+
+                    HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+                    Platform.runLater(() -> {
+                        if (response.statusCode() == 200) {
+                            messageLabel.setStyle("-fx-text-fill: lightgreen;");
+                            messageLabel.setText("Login Successful! Redirecting to Home...");
+                            // Σύνδεση επιτυχής: Δείξε την αρχική οθόνη
+                            showHomeView();
+                        } else {
+                            messageLabel.setStyle("-fx-text-fill: red;");
+                            messageLabel.setText("Login Failed: " + response.body());
+                        }
+                        signInBtn.setDisable(false);
+                    });
+
+                } catch (IOException | InterruptedException ex) {
+                    Platform.runLater(() -> {
+                        messageLabel.setStyle("-fx-text-fill: red;");
+                        messageLabel.setText("Connection Error: Is the backend server running?");
+                        signInBtn.setDisable(false);
+                    });
+                }
+            }).start();
+        });
 
         Label registerLink = new Label("New to CineMatch? Sign up now.");
         registerLink.setStyle("-fx-text-fill: #cccccc; -fx-cursor: hand;");
@@ -160,6 +215,61 @@ public class HelloApplication extends Application {
         registerBtn.setPrefHeight(40);
         registerBtn.setStyle("-fx-background-color: #E50914; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: 5;");
 
+        // Ετικέτα για την εμφάνιση μηνυμάτων (επιτυχία/λάθος)
+        Label messageLabel = new Label("");
+        messageLabel.setStyle("-fx-text-fill: yellow; -fx-font-weight: bold;");
+
+        registerBtn.setOnAction(e -> {
+            registerBtn.setDisable(true);
+
+            String email = emailField.getText();
+            String username = userField.getText();
+            String password = passField.getText();
+            String confirmPassword = confirmPassField.getText();
+
+            if (!password.equals(confirmPassword)) {
+                messageLabel.setStyle("-fx-text-fill: red;");
+                messageLabel.setText("Passwords do not match!");
+                registerBtn.setDisable(false);
+                return;
+            }
+
+            // **Λογική Κλήσης Backend**
+            new Thread(() -> {
+                try {
+                    User newUser = new User(email, username, password);
+                    String jsonBody = new Gson().toJson(newUser);
+
+                    HttpClient client = HttpClient.newHttpClient();
+                    HttpRequest request = HttpRequest.newBuilder()
+                            .uri(URI.create("http://localhost:8080/api/auth/register")) // Εδώ "μιλάς" στο Spring Boot
+                            .header("Content-Type", "application/json")
+                            .POST(HttpRequest.BodyPublishers.ofString(jsonBody))
+                            .build();
+
+                    HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+                    Platform.runLater(() -> {
+                        if (response.statusCode() == 200) {
+                            messageLabel.setStyle("-fx-text-fill: lightgreen;");
+                            messageLabel.setText("Registration Successful! Redirecting to Login.");
+                            showLoginView();
+                        } else {
+                            messageLabel.setStyle("-fx-text-fill: red;");
+                            messageLabel.setText("Registration Failed: " + response.body());
+                        }
+                        registerBtn.setDisable(false);
+                    });
+
+                } catch (IOException | InterruptedException ex) {
+                    Platform.runLater(() -> {
+                        messageLabel.setStyle("-fx-text-fill: red;");
+                        messageLabel.setText("Connection Error: Is the backend server running?");
+                        registerBtn.setDisable(false);
+                    });
+                }
+            }).start();
+        });
 
         Label loginLink = new Label("Already have an account? Sign in.");
         loginLink.setStyle("-fx-text-fill: #cccccc; -fx-cursor: hand;");
