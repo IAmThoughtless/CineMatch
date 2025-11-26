@@ -1,0 +1,115 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.IAmThoughtless.cinematch</groupId>
+    <artifactId>cinematch-client</artifactId>
+    <version>1.0-SNAPSHOT</version>
+
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <maven.compiler.source>21</maven.compiler.source>
+        <maven.compiler.target>21</maven.compiler.target>
+        <!-- Ρυθμίστε το os.arch για το λειτουργικό σας σύστημα: win, mac, linux -->
+        <os.arch>win</os.arch>
+    </properties>
+
+    <dependencies>
+        <!-- JavaFX Dependencies -->
+        <dependency>
+            <groupId>org.openjfx</groupId>
+            <artifactId>javafx-controls</artifactId>
+            <version>21</version>
+        </dependency>
+        <dependency>
+            <groupId>org.openjfx</groupId>
+            <artifactId>javafx-fxml</artifactId>
+            <version>21</version>
+        </dependency>
+
+        <!-- JavaFX Base (Απαιτείται για την κλάση Application) -->
+        <dependency>
+            <groupId>org.openjfx</groupId>
+            <artifactId>javafx-base</artifactId>
+            <version>21</version>
+            <classifier>${os.arch}</classifier>
+        </dependency>
+
+        <!-- Jackson Dependencies (Απαραίτητα για το SearchService - Χειρισμός JSON) -->
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+            <version>2.16.1</version>
+        </dependency>
+
+        <!-- Προσθέστε εδώ οποιεσδήποτε άλλες εξαρτήσεις χρειάζεστε -->
+        <!-- π.χ. JUnit για testing -->
+
+    </dependencies>
+
+    <build>
+        <plugins>
+            <!-- Maven Compiler Plugin για να χρησιμοποιείται Java 21 -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.11.0</version>
+                <configuration>
+                    <source>${maven.compiler.source}</source>
+                    <target>${maven.compiler.target}</target>
+                </configuration>
+            </plugin>
+
+            <!-- 1. JavaFX Maven Plugin -->
+            <plugin>
+                <groupId>org.openjfx</groupId>
+                <artifactId>javafx-maven-plugin</artifactId>
+                <version>0.0.8</version>
+                <configuration>
+                    <!-- ΟΡΙΣΜΟΣ ΤΗΣ ΚΥΡΙΑΣ ΚΛΑΣΗΣ -->
+                    <mainClass>com.IAmThoughtless.cinematch.ApplicationSearchBarCineMatch</mainClass>
+                    <!-- ΑΦΑΙΡΕΣΗ ΤΩΝ OPTIONS: Το plugin τα βρίσκει πλέον αυτόματα -->
+                </configuration>
+                <executions>
+                    <!-- ⭐️ ΚΡΙΣΙΜΗ ΠΡΟΣΘΗΚΗ: Βεβαιώνει ότι το plugin μπορεί να τρέξει -->
+                    <execution>
+                        <id>default-cli</id>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- 2. Maven Assembly Plugin: Δημιουργία Ενιαίου Εκτελέσιμου JAR (Uber-JAR) -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-assembly-plugin</artifactId>
+                <version>3.6.0</version>
+                <configuration>
+                    <descriptorRefs>
+                        <!-- Συμπεριλαμβάνει όλες τις εξαρτήσεις στο JAR -->
+                        <descriptorRef>jar-with-dependencies</descriptorRef>
+                    </descriptorRefs>
+                    <archive>
+                        <manifest>
+                            <!-- Ορισμός της κύριας κλάσης για το εκτελέσιμο JAR -->
+                            <mainClass>com.IAmThoughtless.cinematch.ApplicationSearchBarCineMatch</mainClass>
+                        </manifest>
+                    </archive>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>make-assembly</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>single</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+        </plugins>
+    </build>
+</project>
