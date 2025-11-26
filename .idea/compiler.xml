@@ -9,6 +9,7 @@
         <outputRelativeToContentRoot value="true" />
         <module name="CineMatch" />
         <module name="demo5" />
+        <module name="cinematch-client" />
       </profile>
     </annotationProcessing>
   </component>
