@@ -82,7 +82,6 @@ public class HelloApplication extends Application {
     }
 
     private void showTop10View() {
-        // Show loading indicator immediately (to prevent UI freeze)
         Label loadingLabel = new Label("Fetching Top 10 Movies...");
         loadingLabel.setStyle("-fx-text-fill: white; -fx-font-size: 24px;");
         ProgressIndicator indicator = new ProgressIndicator();
@@ -91,13 +90,12 @@ public class HelloApplication extends Application {
         root.setCenter(loadingBox);
         MovieService movieService = new MovieService();
 
-        // Run API call in the background
+
         CompletableFuture.supplyAsync(movieService::fetchTopMovies)
                 .thenAccept(movieResponse -> {
-                    // Update UI on the JavaFX Application Thread
                     Platform.runLater(() -> {
                         if (movieResponse != null && movieResponse.results != null) {
-                            VBox top10Content = buildTop10UI(movieResponse);
+                            VBox top10Content = buildMovieListUI("⭐ Top 10 Popular Movies ⭐", movieResponse);
                             root.setCenter(top10Content);
                         } else {
                             Label errorLabel = new Label("Could not fetch top movies. Check API key and network connection.");
@@ -110,9 +108,9 @@ public class HelloApplication extends Application {
                 });
     }
 
-    private VBox buildTop10UI(MovieResponse movieResponse) {
+    private VBox buildMovieListUI(String headerText, MovieResponse movieResponse) {
 
-        Label titleLabel = new Label("⭐ Top 10 Popular Movies ⭐");
+        Label titleLabel = new Label(headerText);
         titleLabel.setStyle("-fx-text-fill: #E50914; -fx-font-size: 32px; -fx-font-weight: bold;");
 
         VBox movieListView = new VBox(15);
@@ -120,7 +118,8 @@ public class HelloApplication extends Application {
         movieListView.setAlignment(Pos.TOP_CENTER);
         movieListView.setMaxWidth(800);
 
-        int limit = Math.min(10, movieResponse.results.size());
+
+        int limit = Math.min(20, movieResponse.results.size());
 
         for (int i = 0; i < limit; i++) {
             Movie m = movieResponse.results.get(i);
@@ -132,11 +131,12 @@ public class HelloApplication extends Application {
 
             Label movieDetails = new Label(
                     String.format("Rating: %.1f/10 (%d votes) | Release: %s",
-                            m.vote_average, m.vote_count, m.release_date));
+                            m.vote_average, m.vote_count, (m.release_date != null ? m.release_date : "N/A")));
             movieDetails.setStyle("-fx-text-fill: #aaa; -fx-font-size: 14px;");
 
+            String overviewText = m.overview != null ? m.overview : "No description available.";
             Label overview = new Label(
-                    (m.overview.length() > 140 ? m.overview.substring(0, 140) + "..." : m.overview));
+                    (overviewText.length() > 140 ? overviewText.substring(0, 140) + "..." : overviewText));
             overview.setWrapText(true);
             overview.setStyle("-fx-text-fill: #ccc;");
 
@@ -175,11 +175,11 @@ public class HelloApplication extends Application {
             return placeholder;
         }
 
-        // Base URL for medium-sized posters
+
         String baseUrl = "https://image.tmdb.org/t/p/w200";
         String imageUrl = baseUrl + posterPath;
 
-        // Use the Image constructor designed for background loading
+
         Image image = new Image(imageUrl, true);
 
         ImageView imageView = new ImageView(image);
@@ -209,7 +209,7 @@ public class HelloApplication extends Application {
         Button searchButton = new Button("Search");
         searchButton.setPrefSize(120, 40);
         searchButton.setStyle("-fx-background-color: #E50914; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: 0 20 20 0;");
-
+        searchButton.setOnAction(e -> performSearch(searchField.getText()));
 
         HBox searchBox = new HBox(0, searchField, searchButton);
         searchBox.setAlignment(Pos.CENTER);
@@ -321,6 +321,38 @@ public class HelloApplication extends Application {
                 btn.setStyle("-fx-background-color: #E50914; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: " + btn.getBackground().getFills().getFirst().getRadii().getTopLeftHorizontalRadius() + ";");
             }
         });
+    }
+    private void performSearch(String query) {
+        if (query == null || query.trim().isEmpty()) {
+            return;
+        }
+
+
+        Label loadingLabel = new Label("Searching for \"" + query + "\"...");
+        loadingLabel.setStyle("-fx-text-fill: white; -fx-font-size: 24px;");
+        ProgressIndicator indicator = new ProgressIndicator();
+        VBox loadingBox = new VBox(20, loadingLabel, indicator);
+        loadingBox.setAlignment(Pos.CENTER);
+        root.setCenter(loadingBox);
+
+        MovieService movieService = new MovieService();
+
+
+        CompletableFuture.supplyAsync(() -> movieService.searchMovies(query))
+                .thenAccept(movieResponse -> {
+                    Platform.runLater(() -> {
+                        if (movieResponse != null && movieResponse.results != null && !movieResponse.results.isEmpty()) {
+                            VBox resultsUI = buildMovieListUI("Search Results: " + query, movieResponse);
+                            root.setCenter(resultsUI);
+                        } else {
+                            Label errorLabel = new Label("No movies found for: " + query);
+                            errorLabel.setStyle("-fx-text-fill: red; -fx-font-size: 18px;");
+                            VBox errorBox = new VBox(errorLabel);
+                            errorBox.setAlignment(Pos.CENTER);
+                            root.setCenter(errorBox);
+                        }
+                    });
+                });
     }
 
 }

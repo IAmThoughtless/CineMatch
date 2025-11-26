@@ -8,6 +8,7 @@
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />
         <module name="CineMatch" />
+        <module name="demo5" />
       </profile>
     </annotationProcessing>
   </component>
