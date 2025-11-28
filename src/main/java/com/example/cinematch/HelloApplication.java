@@ -113,6 +113,32 @@ public class HelloApplication extends Application {
         root.setCenter(homeContent);
     }
 
+    private void showTop10View() {
+        Label loadingLabel = new Label("Fetching Top 10 Movies...");
+        loadingLabel.setStyle("-fx-text-fill: white; -fx-font-size: 24px;");
+        ProgressIndicator indicator = new ProgressIndicator();
+        VBox loadingBox = new VBox(20, loadingLabel, indicator);
+        loadingBox.setAlignment(Pos.CENTER);
+        root.setCenter(loadingBox);
+        MovieService movieService = new MovieService();
+
+
+        CompletableFuture.supplyAsync(movieService::fetchTopMovies)
+                .thenAccept(movieResponse -> {
+                    Platform.runLater(() -> {
+                        if (movieResponse != null && movieResponse.results != null) {
+                            VBox top10Content = buildMovieListUI("⭐ Top 10 Popular Movies ⭐", movieResponse);
+                            root.setCenter(top10Content);
+                        } else {
+                            Label errorLabel = new Label("Could not fetch top movies. Check API key and network connection.");
+                            errorLabel.setStyle("-fx-text-fill: red; -fx-font-size: 18px;");
+                            VBox errorBox = new VBox(errorLabel);
+                            errorBox.setAlignment(Pos.CENTER);
+                            root.setCenter(errorBox);
+                        }
+                    });
+                });
+    }
     private void showLoginView() {
         Label loginTitle = new Label("Sign In");
         loginTitle.setStyle("-fx-text-fill: white; -fx-font-size: 28px; -fx-font-weight: bold;");
@@ -294,12 +320,123 @@ public class HelloApplication extends Application {
     }
 
     // --- Helper Methods ---
-    private void showTop10View() {
-        // Implement logic to fetch top 10 movies
+    private VBox buildMovieListUI(String headerText, MovieResponse movieResponse) {
+
+        Label titleLabel = new Label(headerText);
+        titleLabel.setStyle("-fx-text-fill: #E50914; -fx-font-size: 32px; -fx-font-weight: bold;");
+
+        VBox movieListView = new VBox(15);
+        movieListView.setPadding(new Insets(30));
+        movieListView.setAlignment(Pos.TOP_CENTER);
+        movieListView.setMaxWidth(800);
+
+
+        int limit = Math.min(20, movieResponse.results.size());
+
+        for (int i = 0; i < limit; i++) {
+            Movie m = movieResponse.results.get(i);
+
+            ImageView posterView = createPosterImageView(m.poster_path);
+
+            Label movieTitle = new Label(m.title);
+            movieTitle.setStyle("-fx-text-fill: white; -fx-font-size: 20px; -fx-font-weight: bold;");
+
+            Label movieDetails = new Label(
+                    String.format("Rating: %.1f/10 (%d votes) | Release: %s",
+                            m.vote_average, m.vote_count, (m.release_date != null ? m.release_date : "N/A")));
+            movieDetails.setStyle("-fx-text-fill: #aaa; -fx-font-size: 14px;");
+
+            String overviewText = m.overview != null ? m.overview : "No description available.";
+            Label overview = new Label(
+                    (overviewText.length() > 140 ? overviewText.substring(0, 140) + "..." : overviewText));
+            overview.setWrapText(true);
+            overview.setStyle("-fx-text-fill: #ccc;");
+
+            VBox textContent = new VBox(5, movieTitle, movieDetails, overview);
+
+            HBox movieCard = new HBox(20.0, posterView, textContent);
+            movieCard.setAlignment(Pos.CENTER_LEFT);
+            HBox.setHgrow(textContent, Priority.ALWAYS);
+
+            movieListView.getChildren().add(movieCard);
+
+            if (i < limit - 1) {
+                Region separator = new Region();
+                separator.setPrefHeight(1);
+                separator.setStyle("-fx-background-color: #333;");
+                movieListView.getChildren().add(separator);
+            }
+        }
+
+        ScrollPane scrollPane = new ScrollPane(movieListView);
+        scrollPane.setFitToWidth(true);
+        scrollPane.setStyle("-fx-background: transparent; -fx-background-color: transparent;");
+
+        VBox finalLayout = new VBox(20, titleLabel, scrollPane);
+        finalLayout.setPadding(new Insets(30));
+        finalLayout.setAlignment(Pos.TOP_CENTER);
+
+        return finalLayout;
+    }
+
+    private ImageView createPosterImageView(String posterPath) {
+        if (posterPath == null || posterPath.isEmpty()) {
+            ImageView placeholder = new ImageView();
+            placeholder.setFitWidth(100);
+            placeholder.setFitHeight(150);
+            return placeholder;
+        }
+
+
+        String baseUrl = "https://image.tmdb.org/t/p/w200";
+        String imageUrl = baseUrl + posterPath;
+
+
+        Image image = new Image(imageUrl, true);
+
+        ImageView imageView = new ImageView(image);
+        imageView.setFitWidth(100);
+        imageView.setFitHeight(150);
+
+        DropShadow shadow = new DropShadow();
+        shadow.setColor(Color.BLACK);
+        shadow.setRadius(5);
+        imageView.setEffect(shadow);
+
+        return imageView;
     }
 
     private void performSearch(String query) {
-        // Implement logic to search movies
+        if (query == null || query.trim().isEmpty()) {
+            return;
+        }
+
+
+        Label loadingLabel = new Label("Searching for \"" + query + "\"...");
+        loadingLabel.setStyle("-fx-text-fill: white; -fx-font-size: 24px;");
+        ProgressIndicator indicator = new ProgressIndicator();
+        VBox loadingBox = new VBox(20, loadingLabel, indicator);
+        loadingBox.setAlignment(Pos.CENTER);
+        root.setCenter(loadingBox);
+
+        MovieService movieService = new MovieService();
+
+
+        CompletableFuture.supplyAsync(() -> movieService.searchMovies(query))
+                .thenAccept(movieResponse -> {
+                    Platform.runLater(() -> {
+                        if (movieResponse != null && movieResponse.results != null && !movieResponse.results.isEmpty()) {
+                            VBox resultsUI = buildMovieListUI("Search Results: " + query, movieResponse);
+                            root.setCenter(resultsUI);
+                        } else {
+                            Label errorLabel = new Label("No movies found for: " + query);
+                            errorLabel.setStyle("-fx-text-fill: red; -fx-font-size: 18px;");
+                            VBox errorBox = new VBox(errorLabel);
+                            errorBox.setAlignment(Pos.CENTER);
+                            root.setCenter(errorBox);
+                        }
+                    });
+                });
     }
 
     private void makeButtonAnimated(Button btn, boolean isRedButton) {
