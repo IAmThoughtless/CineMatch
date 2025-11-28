@@ -446,7 +446,7 @@ public class HelloApplication extends Application {
             btn.setScaleX(1.10);
             btn.setScaleY(1.10);
             if (isRedButton) {
-                double radius = btn.getBackground().getFills().get(0).getRadii().getTopLeftHorizontalRadius();
+                double radius = btn.getBackground().getFills().getFirst().getRadii().getTopLeftHorizontalRadius();
                 btn.setStyle("-fx-background-color: #ff1f2c; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: " + radius + ";");
             }
         });
@@ -454,7 +454,7 @@ public class HelloApplication extends Application {
             btn.setScaleX(1.0);
             btn.setScaleY(1.0);
             if (isRedButton) {
-                double radius = btn.getBackground().getFills().get(0).getRadii().getTopLeftHorizontalRadius();
+                double radius = btn.getBackground().getFills().getFirst().getRadii().getTopLeftHorizontalRadius();
                 btn.setStyle("-fx-background-color: #E50914; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: " + radius + ";");
             }
         });
