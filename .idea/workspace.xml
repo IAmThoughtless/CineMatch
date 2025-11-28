@@ -4,11 +4,14 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="24badb3b-1ccc-4102-b799-a3f1f478e83d" name="Changes" comment="Testing and Code Cleanup">
-      <change beforePath="$PROJECT_DIR$/target/classes/com/example/cinematch/HelloApplication.class" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/com/example/cinematch/HelloController.class" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/com/example/cinematch/Launcher.class" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/module-info.class" beforeDir="false" />
+    <list default="true" id="24badb3b-1ccc-4102-b799-a3f1f478e83d" name="Changes" comment="Αδδιτιον οφ αθτη">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pom.xml" beforeDir="false" afterPath="$PROJECT_DIR$/pom.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/cinematch/cinematchbackend/CineMatchBackendApplication.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/cinematch/cinematchbackend/CineMatchBackendApplication.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/example/cinematch/HelloApplication.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/example/cinematch/HelloApplication.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/module-info.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/module-info.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/example/cinematch/HelloApplication.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/example/cinematch/HelloApplication.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/module-info.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/module-info.class" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -26,7 +29,7 @@
     <option name="BRANCH" value="origin/master" />
   </component>
   <component name="Git.Rebase.Settings">
-    <option name="NEW_BASE" value="master" />
+    <option name="NEW_BASE" value="search-bar" />
   </component>
   <component name="Git.Settings">
     <option name="RECENT_BRANCH_BY_REPOSITORY">
@@ -66,13 +69,14 @@
   </component>
   <component name="PropertiesComponent"><![CDATA[{
   "keyToString": {
+    "Application.CineMatchBackendApplication.executor": "Run",
     "Application.HelloApplication.executor": "Run",
     "Application.Launcher.executor": "Run",
     "Application.Main.executor": "Run",
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "RunOnceActivity.git.unshallow": "true",
     "com.intellij.ml.llm.matterhorn.ej.ui.settings.DefaultModelSelectionForGA.v1": "true",
-    "git-widget-placeholder": "search-bar",
+    "git-widget-placeholder": "Dev",
     "junie.onboarding.icon.badge.shown": "true",
     "kotlin-language-version-configured": "true",
     "node.js.detected.package.eslint": "true",
@@ -128,7 +132,23 @@
       <option name="project" value="LOCAL" />
       <updated>1764066677111</updated>
     </task>
-    <option name="localTasksCounter" value="3" />
+    <task id="LOCAL-00003" summary="Αδδιτιον οφ αθτη">
+      <option name="closed" value="true" />
+      <created>1764336857887</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1764336857887</updated>
+    </task>
+    <task id="LOCAL-00004" summary="Αδδιτιον οφ αθτη">
+      <option name="closed" value="true" />
+      <created>1764336883317</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL-00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1764336883317</updated>
+    </task>
+    <option name="localTasksCounter" value="5" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -145,7 +165,7 @@
                   <entry key="branch">
                     <value>
                       <list>
-                        <option value="animation" />
+                        <option value="origin/Dev" />
                       </list>
                     </value>
                   </entry>
@@ -160,6 +180,9 @@
   <component name="VcsManagerConfiguration">
     <MESSAGE value="UI Commit" />
     <MESSAGE value="Testing and Code Cleanup" />
-    <option name="LAST_COMMIT_MESSAGE" value="Testing and Code Cleanup" />
+    <MESSAGE value="Change to JDK 21" />
+    <MESSAGE value="Additon of auth" />
+    <MESSAGE value="Αδδιτιον οφ αθτη" />
+    <option name="LAST_COMMIT_MESSAGE" value="Αδδιτιον οφ αθτη" />
   </component>
 </project>
