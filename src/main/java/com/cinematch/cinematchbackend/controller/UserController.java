@@ -1,43 +1,58 @@
 package com.cinematch.cinematchbackend.controller;
 
 import com.cinematch.cinematchbackend.model.User;
+import com.cinematch.cinematchbackend.repository.UserRepository;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/auth")
 public class UserController {
 
-    private User savedUser = null;
+    @Autowired
+    private UserRepository userRepository;
 
-    @CrossOrigin(origins = "*") // Επιτρέπει αιτήματα από οποιοδήποτε frontend (για τοπική δοκιμή)
+    @CrossOrigin(origins = "*")
     @PostMapping("/register")
     public ResponseEntity<String> register(@RequestBody User user) {
-        if (savedUser != null) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("A user is already registered locally.");
+
+        // 1. Check if user already exists in the Database
+        if (userRepository.existsByUsername(user.getUsername())) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Username is already taken.");
         }
 
-        // Αποθήκευση του χρήστη
-        this.savedUser = user;
-        System.out.println("Backend: Registration successful for user: " + user.getUsername());
+        if (userRepository.existsByEmail(user.getEmail())) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Email is already registered.");
+        }
+
+        // 2. Save the user to the Database
+        userRepository.save(user);
+        System.out.println("Backend: Saved new user to DB: " + user.getUsername());
 
         return ResponseEntity.ok("Registration successful! Proceed to login.");
     }
 
     @CrossOrigin(origins = "*")
     @PostMapping("/login")
-    public ResponseEntity<String> login(@RequestBody User user) {
-        if (savedUser == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("No user registered.");
+    public ResponseEntity<String> login(@RequestBody User loginRequest) {
+
+        // 1. Search for the user in the Database
+        Optional<User> dbUser = userRepository.findByUsername(loginRequest.getUsername());
+
+        if (dbUser.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("User not found.");
         }
 
-        // Έλεγχος των στοιχείων
-        if (savedUser.getUsername().equals(user.getUsername()) && savedUser.getPassword().equals(user.getPassword())) {
-            System.out.println("Backend: Login successful for user: " + user.getUsername());
+        // 2. Check if the password matches
+        if (dbUser.get().getPassword().equals(loginRequest.getPassword())) {
+            System.out.println("Backend: Login successful for: " + loginRequest.getUsername());
             return ResponseEntity.ok("Login successful! Welcome.");
         } else {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid username or password.");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid password.");
         }
     }
 }

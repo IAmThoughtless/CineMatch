@@ -86,6 +86,7 @@ public class HelloApplication extends Application {
     }
 
     private void showHomeView() {
+        root.setTop(createHeader());
         Label welcomeLabel = new Label("Welcome to CineMatch");
         welcomeLabel.setStyle("-fx-text-fill: white; -fx-font-size: 36px; -fx-font-weight: bold;");
 
@@ -144,7 +145,7 @@ public class HelloApplication extends Application {
         loginTitle.setStyle("-fx-text-fill: white; -fx-font-size: 28px; -fx-font-weight: bold;");
 
         TextField usernameField = new TextField();
-        usernameField.setPromptText("Email or Username");
+        usernameField.setPromptText("Username");
         usernameField.setPrefHeight(40);
         usernameField.setStyle("-fx-background-radius: 5; -fx-background-color: #333; -fx-text-fill: white;");
 
@@ -188,6 +189,7 @@ public class HelloApplication extends Application {
                         if (response.statusCode() == 200) {
                             messageLabel.setStyle("-fx-text-fill: lightgreen;");
                             messageLabel.setText("Login Successful!");
+                            UserSession.getInstance().setUsername(username);
                             showHomeView();
                         } else {
                             messageLabel.setStyle("-fx-text-fill: red;");
@@ -456,6 +458,70 @@ public class HelloApplication extends Application {
                 btn.setStyle("-fx-background-color: #E50914; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: " + radius + ";");
             }
         });
+    }
+    private HBox createHeader() {
+        Label logoLabel = new Label("CineMatch");
+        logoLabel.setStyle("-fx-text-fill: #E50914;");
+        logoLabel.setFont(Font.font("Verdana", FontWeight.BOLD, 24));
+
+        DropShadow shadow = new DropShadow();
+        shadow.setOffsetY(3.0);
+        shadow.setColor(Color.color(0, 0, 0, 0.5));
+        logoLabel.setEffect(shadow);
+
+        Button homeBtn = new Button("Home Page");
+        homeBtn.setOnAction(event -> showHomeView());
+        homeBtn.setStyle("-fx-background-color: transparent; -fx-text-fill: white; -fx-font-size: 14px; -fx-font-weight: bold; -fx-cursor: hand;");
+        makeButtonAnimated(homeBtn, false);
+
+        Button top10Btn = new Button("Top 10");
+        top10Btn.setOnAction(event -> showTop10View());
+        top10Btn.setStyle("-fx-background-color: transparent; -fx-text-fill: white; -fx-font-size: 14px; -fx-font-weight: bold; -fx-cursor: hand;");
+        makeButtonAnimated(top10Btn, false);
+
+        Button quizBtn = new Button("Quiz");
+        quizBtn.setStyle("-fx-background-color: transparent; -fx-text-fill: white; -fx-font-size: 14px; -fx-font-weight: bold; -fx-cursor: hand; ");
+        makeButtonAnimated(quizBtn, false);
+
+        // --- NEW LOGIC START ---
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+
+        HBox header = new HBox(15);
+        header.getChildren().addAll(logoLabel, spacer, homeBtn, top10Btn, quizBtn);
+
+        // Check if user is logged in using our new Session class
+        if (UserSession.getInstance().isLoggedIn()) {
+            // 1. Show Welcome Message
+            Label welcomeUser = new Label("Welcome, " + UserSession.getInstance().getUsername());
+            welcomeUser.setStyle("-fx-text-fill: #E50914; -fx-font-weight: bold; -fx-font-size: 14px;");
+
+            // 2. Show Logout Button
+            Button logoutBtn = new Button("Logout");
+            logoutBtn.setStyle("-fx-background-color: transparent; -fx-border-color: white; -fx-border-radius: 5; -fx-text-fill: white; -fx-cursor: hand;");
+            logoutBtn.setOnAction(e -> {
+                UserSession.getInstance().cleanUserSession(); // Clear session
+                showHomeView(); // Refresh view
+            });
+
+            header.getChildren().addAll(welcomeUser, logoutBtn);
+
+        } else {
+            // 3. If NOT logged in, show Login Button
+            Button loginBtn = new Button("Login / Register");
+            loginBtn.setOnAction(event -> showLoginView());
+            loginBtn.setStyle("-fx-background-color: #E50914; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: 5;");
+            makeButtonAnimated(loginBtn, true);
+
+            header.getChildren().add(loginBtn);
+        }
+        // --- NEW LOGIC END ---
+
+        header.setPadding(new Insets(15, 25, 15, 25));
+        header.setAlignment(Pos.CENTER_LEFT);
+        header.setStyle("-fx-background-color: rgba(0, 0, 0, 0.3);");
+
+        return header;
     }
 
     public static void main(String[] args) {

@@ -27,6 +27,12 @@ module com.example.cinematch {
     requires spring.core;
     requires spring.web;
 
+    // --- DATABASE / JPA (NEW) ---
+    requires spring.data.jpa;        // Fixes "package ... not visible"
+    requires jakarta.persistence;    // Fixes @Entity, @Id not found
+    requires org.hibernate.orm.core; // Allows Hibernate to talk to DB
+    requires spring.tx;              // Handles database transactions
+
     // --- Utils ---
     requires com.google.gson;
     requires static lombok;
@@ -34,8 +40,6 @@ module com.example.cinematch {
     // --- EXPORTS ---
     exports com.example.cinematch;
     exports com.cinematch.cinematchbackend;
-
-    // EXPORT MODEL so Gson/Jackson can see the class
     exports com.cinematch.cinematchbackend.model;
 
     // --- OPENS ---
@@ -47,10 +51,12 @@ module com.example.cinematch {
     // 2. OPEN CONTROLLERS
     opens com.cinematch.cinematchbackend.controller to spring.beans, spring.web, spring.context, spring.core;
 
-    // 3. OPEN MODELS (Fixes Login "Bad Request" / Empty JSON)
-    opens com.cinematch.cinematchbackend.model to spring.core, spring.beans, spring.context, com.google.gson, spring.web;
+    // 3. OPEN MODELS
+    // Added 'org.hibernate.orm.core' so the DB engine can read your User class
+    opens com.cinematch.cinematchbackend.model to spring.core, spring.beans, spring.context, com.google.gson, spring.web, org.hibernate.orm.core;
+    exports com.cinematch.cinematchbackend.repository;
+    opens com.cinematch.cinematchbackend.repository to spring.beans, spring.boot, spring.context, spring.core, spring.data.jpa;
 
-    // 4. OPTIONAL: Only uncomment these if the packages are NOT empty!
-    // opens com.cinematch.cinematchbackend.service to spring.beans, spring.context, spring.core;
-    // opens com.cinematch.cinematchbackend.repository to spring.beans, spring.context, spring.core;
+    // 4. OPEN REPOSITORIES (Uncommented & Updated)
+    // Spring needs to see this to create the database connection
 }
