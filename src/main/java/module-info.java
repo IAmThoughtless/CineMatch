@@ -36,6 +36,9 @@ module com.example.cinematch {
     // --- Utils ---
     requires com.google.gson;
     requires static lombok;
+    requires com.fasterxml.jackson.annotation;
+    requires com.fasterxml.jackson.databind;
+
 
     // --- EXPORTS ---
     exports com.example.cinematch;
@@ -46,17 +49,20 @@ module com.example.cinematch {
 
     // 1. OPEN MAIN APPS
     opens com.cinematch.cinematchbackend to spring.core, spring.beans, spring.context, spring.boot;
-    opens com.example.cinematch to javafx.fxml, spring.core, spring.boot, com.google.gson;
+    opens com.example.cinematch to javafx.fxml, spring.core, spring.boot, com.google.gson, com.fasterxml.jackson.databind;
 
     // 2. OPEN CONTROLLERS
     opens com.cinematch.cinematchbackend.controller to spring.beans, spring.web, spring.context, spring.core;
 
-    // 3. OPEN MODELS
+    // 3. OPEN SERVICES
+    opens com.cinematch.cinematchbackend.services to spring.beans, spring.context, spring.core;
+
+    // 4. OPEN MODELS
     // Added 'org.hibernate.orm.core' so the DB engine can read your User class
-    opens com.cinematch.cinematchbackend.model to spring.core, spring.beans, spring.context, com.google.gson, spring.web, org.hibernate.orm.core;
+    opens com.cinematch.cinematchbackend.model to spring.core, spring.beans, spring.context, com.google.gson, spring.web, org.hibernate.orm.core, com.fasterxml.jackson.databind;
     exports com.cinematch.cinematchbackend.repository;
     opens com.cinematch.cinematchbackend.repository to spring.beans, spring.boot, spring.context, spring.core, spring.data.jpa;
 
-    // 4. OPEN REPOSITORIES (Uncommented & Updated)
+    // 5. OPEN REPOSITORIES (Uncommented & Updated)
     // Spring needs to see this to create the database connection
 }
