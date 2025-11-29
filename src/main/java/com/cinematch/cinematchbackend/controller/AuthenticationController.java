@@ -11,7 +11,7 @@ import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/auth")
-public class UserController {
+public class AuthenticationController {
 
     @Autowired
     private UserRepository userRepository;
