@@ -1,6 +1,7 @@
 package com.cinematch.cinematchbackend.controller;
 
 import com.cinematch.cinematchbackend.model.MovieResponse;
+import com.cinematch.cinematchbackend.model.MovieSearchPayload;
 import com.cinematch.cinematchbackend.model.User;
 import com.cinematch.cinematchbackend.repository.UserRepository;
 import com.cinematch.cinematchbackend.services.MovieService;
@@ -26,9 +27,9 @@ public class MovieController {
 
     @CrossOrigin(origins = "*")
     @PostMapping("/search")
-    public ResponseEntity<MovieResponse> searchMovie(@RequestBody String query) {
+    public ResponseEntity<MovieResponse> searchMovie(@RequestBody MovieSearchPayload movieSearchPayload) {
         MovieService movieService = new MovieService();
-        MovieResponse ds = movieService.searchMovies(query);
+        MovieResponse ds = movieService.searchMovies(movieSearchPayload.getQuery());
         return ResponseEntity.ok(ds);
     }
 

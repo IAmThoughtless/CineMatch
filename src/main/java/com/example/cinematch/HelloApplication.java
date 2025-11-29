@@ -1,7 +1,6 @@
 package com.example.cinematch;
 
 // Import your Backend Models
-import com.cinematch.cinematchbackend.model.User;
 // If your User class is in a different package, change the line above!
 
 import com.google.gson.Gson;
@@ -24,7 +23,6 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
-import java.util.concurrent.CompletableFuture;
 
 public class HelloApplication extends Application {
 
@@ -186,9 +184,7 @@ public class HelloApplication extends Application {
             new Thread(() -> {
                 try {
                     // Assuming User constructor: User(username, password)
-                    User user = new User();
-                    user.setUsername(username); // Setters are safer if you have them
-                    user.setPassword(password);
+                    User user = new User(username, password);
 
                     String jsonBody = new Gson().toJson(user);
 
@@ -287,11 +283,7 @@ public class HelloApplication extends Application {
 
             new Thread(() -> {
                 try {
-                    User newUser = new User();
-                    newUser.setEmail(email);
-                    newUser.setUsername(username);
-                    newUser.setPassword(password);
-
+                    User newUser = new User(email, username, password);
                     String jsonBody = new Gson().toJson(newUser);
 
                     HttpClient client = HttpClient.newHttpClient();
@@ -429,7 +421,6 @@ public class HelloApplication extends Application {
             return;
         }
 
-
         Label loadingLabel = new Label("Searching for \"" + query + "\"...");
         loadingLabel.setStyle("-fx-text-fill: white; -fx-font-size: 24px;");
         ProgressIndicator indicator = new ProgressIndicator();
@@ -437,24 +428,43 @@ public class HelloApplication extends Application {
         loadingBox.setAlignment(Pos.CENTER);
         root.setCenter(loadingBox);
 
-        MovieService movieService = new MovieService();
+        new Thread(() -> {
+            try {
+                MovieSearchPayload movie = new MovieSearchPayload(query);
+                String jsonBody = new Gson().toJson(movie);
 
+                HttpClient client = HttpClient.newHttpClient();
+                HttpRequest request = HttpRequest.newBuilder()
+                        .uri(URI.create("http://localhost:8080/api/movie/search"))
+                        .header("Content-Type", "application/json")
+                        .POST(HttpRequest.BodyPublishers.ofString(jsonBody))
+                        .build();
 
-        CompletableFuture.supplyAsync(() -> movieService.searchMovies(query))
-                .thenAccept(movieResponse -> {
-                    Platform.runLater(() -> {
-                        if (movieResponse != null && movieResponse.results != null && !movieResponse.results.isEmpty()) {
-                            VBox resultsUI = buildMovieListUI("Search Results: " + query, movieResponse);
-                            root.setCenter(resultsUI);
-                        } else {
-                            Label errorLabel = new Label("No movies found for: " + query);
-                            errorLabel.setStyle("-fx-text-fill: red; -fx-font-size: 18px;");
-                            VBox errorBox = new VBox(errorLabel);
-                            errorBox.setAlignment(Pos.CENTER);
-                            root.setCenter(errorBox);
-                        }
-                    });
+                HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+                Platform.runLater(() -> {
+                    Gson gson = new Gson();
+                    MovieResponse movies = gson.fromJson(response.body(), MovieResponse.class);
+
+                    if (response.statusCode() != 200 || movies == null || movies.results == null || movies.results.isEmpty()) {
+                        Label errorLabel = new Label("No movies found for: " + query);
+                        errorLabel.setStyle("-fx-text-fill: red; -fx-font-size: 18px;");
+                        VBox errorBox = new VBox(errorLabel);
+                        errorBox.setAlignment(Pos.CENTER);
+                        root.setCenter(errorBox);
+                    } else {
+                        VBox resultsUI = buildMovieListUI("Search Results: " + query, movies);
+                        root.setCenter(resultsUI);
+                    }
                 });
+
+            } catch (Exception ex) {
+                Label errorLabel = new Label("Could not fetch top movies. Check API key and network connection.");
+                errorLabel.setStyle("-fx-text-fill: red; -fx-font-size: 18px;");
+                VBox errorBox = new VBox(errorLabel);
+                errorBox.setAlignment(Pos.CENTER);
+                root.setCenter(errorBox);
+            }
+        }).start();
     }
 
     private void makeButtonAnimated(Button btn, boolean isRedButton) {
