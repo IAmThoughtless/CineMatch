@@ -9,7 +9,6 @@ import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
-import javafx.scene.Cursor;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.effect.DropShadow;
@@ -21,7 +20,6 @@ import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import javafx.stage.Stage;
 
-import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -121,24 +119,42 @@ public class HelloApplication extends Application {
         VBox loadingBox = new VBox(20, loadingLabel, indicator);
         loadingBox.setAlignment(Pos.CENTER);
         root.setCenter(loadingBox);
-        MovieService movieService = new MovieService();
 
+        new Thread(() -> {
+            try {
+                HttpClient client = HttpClient.newHttpClient();
+                HttpRequest request = HttpRequest.newBuilder()
+                        .uri(URI.create("http://localhost:8080/api/movie/top-10"))
+                        .header("Content-Type", "application/json")
+                        .build();
 
-        CompletableFuture.supplyAsync(movieService::fetchTopMovies)
-                .thenAccept(movieResponse -> {
-                    Platform.runLater(() -> {
-                        if (movieResponse != null && movieResponse.results != null) {
-                            VBox top10Content = buildMovieListUI("⭐ Top 10 Popular Movies ⭐", movieResponse);
-                            root.setCenter(top10Content);
-                        } else {
-                            Label errorLabel = new Label("Could not fetch top movies. Check API key and network connection.");
-                            errorLabel.setStyle("-fx-text-fill: red; -fx-font-size: 18px;");
-                            VBox errorBox = new VBox(errorLabel);
-                            errorBox.setAlignment(Pos.CENTER);
-                            root.setCenter(errorBox);
-                        }
-                    });
+                HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+                Platform.runLater(() -> {
+                    Gson gson = new Gson();
+                    MovieResponse movies = gson.fromJson(response.body(), MovieResponse.class);
+
+                    if (response.statusCode() != 200 || movies == null || movies.results == null) {
+                        Label errorLabel = new Label("Could not fetch top movies. Check API key and network connection.");
+                        errorLabel.setStyle("-fx-text-fill: red; -fx-font-size: 18px;");
+                        VBox errorBox = new VBox(errorLabel);
+                        errorBox.setAlignment(Pos.CENTER);
+                        root.setCenter(errorBox);
+                    }
+                    else {
+                        VBox top10Content = buildMovieListUI("⭐ Top 10 Popular Movies ⭐", movies);
+                        root.setCenter(top10Content);
+                    }
+
                 });
+
+            } catch (Exception ex) {
+                Label errorLabel = new Label("Could not fetch top movies. Check API key and network connection.");
+                errorLabel.setStyle("-fx-text-fill: red; -fx-font-size: 18px;");
+                VBox errorBox = new VBox(errorLabel);
+                errorBox.setAlignment(Pos.CENTER);
+                root.setCenter(errorBox);
+            }
+        }).start();
     }
     private void showLoginView() {
         Label loginTitle = new Label("Sign In");
