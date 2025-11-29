@@ -1,7 +1,6 @@
 package com.example.cinematch;
 
 // Import your Backend Models
-import com.cinematch.cinematchbackend.model.User;
 // If your User class is in a different package, change the line above!
 
 import com.google.gson.Gson;
@@ -185,9 +184,7 @@ public class HelloApplication extends Application {
             new Thread(() -> {
                 try {
                     // Assuming User constructor: User(username, password)
-                    User user = new User();
-                    user.setUsername(username); // Setters are safer if you have them
-                    user.setPassword(password);
+                    User user = new User(username, password);
 
                     String jsonBody = new Gson().toJson(user);
 
@@ -286,11 +283,7 @@ public class HelloApplication extends Application {
 
             new Thread(() -> {
                 try {
-                    User newUser = new User();
-                    newUser.setEmail(email);
-                    newUser.setUsername(username);
-                    newUser.setPassword(password);
-
+                    User newUser = new User(email, username, password);
                     String jsonBody = new Gson().toJson(newUser);
 
                     HttpClient client = HttpClient.newHttpClient();

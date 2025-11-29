@@ -1,6 +1,7 @@
 package com.cinematch.cinematchbackend.controller;
 
 import com.cinematch.cinematchbackend.model.MovieResponse;
+import com.cinematch.cinematchbackend.model.MovieSearchPayload;
 import com.cinematch.cinematchbackend.model.User;
 import com.cinematch.cinematchbackend.repository.UserRepository;
 import com.cinematch.cinematchbackend.services.MovieService;
