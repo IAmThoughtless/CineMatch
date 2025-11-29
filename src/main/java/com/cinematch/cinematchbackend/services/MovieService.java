@@ -2,6 +2,7 @@ package com.cinematch.cinematchbackend.services;
 
 import com.cinematch.cinematchbackend.model.MovieResponse;
 import com.google.gson.Gson;
+import org.springframework.stereotype.Service;
 
 import java.net.URI;
 import java.net.URLEncoder;
@@ -10,6 +11,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 
+@Service
 public class MovieService {
 
 

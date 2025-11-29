@@ -4,8 +4,17 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="24badb3b-1ccc-4102-b799-a3f1f478e83d" name="Changes" comment="Changing user login and register to DB">
+    <list default="true" id="24badb3b-1ccc-4102-b799-a3f1f478e83d" name="Changes" comment="Cleanup">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pom.xml" beforeDir="false" afterPath="$PROJECT_DIR$/pom.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/cinematch/cinematchbackend/controller/MovieController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/cinematch/cinematchbackend/controller/MovieController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/example/cinematch/HelloApplication.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/example/cinematch/HelloApplication.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/example/cinematch/Movie.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/example/cinematch/Movie.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/example/cinematch/MovieResponse.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/example/cinematch/MovieResponse.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/module-info.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/module-info.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/example/cinematch/HelloApplication.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/example/cinematch/HelloApplication.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/example/cinematch/Launcher.class" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/module-info.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/module-info.class" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -39,12 +48,12 @@
     &quot;assignee&quot;: &quot;IAmThoughtless&quot;
   }
 }</component>
-  <component name="GithubPullRequestsUISettings"><![CDATA[{
-  "selectedUrlAndAccountId": {
-    "url": "https://github.com/IAmThoughtless/CineMatch.git",
-    "accountId": "1359cf11-826f-4972-ac2d-c26bc189795a"
+  <component name="GithubPullRequestsUISettings">{
+  &quot;selectedUrlAndAccountId&quot;: {
+    &quot;url&quot;: &quot;https://github.com/IAmThoughtless/CineMatch.git&quot;,
+    &quot;accountId&quot;: &quot;1359cf11-826f-4972-ac2d-c26bc189795a&quot;
   }
-}]]></component>
+}</component>
   <component name="MavenImportPreferences">
     <option name="generalSettings">
       <MavenGeneralSettings>
@@ -159,7 +168,15 @@
       <option name="project" value="LOCAL" />
       <updated>1764362231813</updated>
     </task>
-    <option name="localTasksCounter" value="8" />
+    <task id="LOCAL-00008" summary="Cleanup">
+      <option name="closed" value="true" />
+      <created>1764403017973</created>
+      <option name="number" value="00008" />
+      <option name="presentableId" value="LOCAL-00008" />
+      <option name="project" value="LOCAL" />
+      <updated>1764403017973</updated>
+    </task>
+    <option name="localTasksCounter" value="9" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -176,7 +193,7 @@
                   <entry key="branch">
                     <value>
                       <list>
-                        <option value="origin/Dev" />
+                        <option value="origin/main" />
                       </list>
                     </value>
                   </entry>
@@ -195,6 +212,7 @@
     <MESSAGE value="Additon of auth" />
     <MESSAGE value="Αδδιτιον οφ αθτη" />
     <MESSAGE value="Changing user login and register to DB" />
-    <option name="LAST_COMMIT_MESSAGE" value="Changing user login and register to DB" />
+    <MESSAGE value="Cleanup" />
+    <option name="LAST_COMMIT_MESSAGE" value="Cleanup" />
   </component>
 </project>

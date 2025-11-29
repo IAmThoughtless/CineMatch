@@ -15,11 +15,13 @@ public class MovieController {
 
     @Autowired
     private UserRepository userRepository;
+    
+    @Autowired
+    private MovieService movieService;
 
     @CrossOrigin(origins = "*")
     @GetMapping("/{id}")
     public ResponseEntity<MovieResponse> getMovie(@PathVariable String id) {
-        MovieService movieService = new MovieService();
         MovieResponse ds = movieService.getMovie(id);
         return ResponseEntity.ok(ds);
     }
@@ -27,7 +29,6 @@ public class MovieController {
     @CrossOrigin(origins = "*")
     @PostMapping("/search")
     public ResponseEntity<MovieResponse> searchMovie(@RequestBody String query) {
-        MovieService movieService = new MovieService();
         MovieResponse ds = movieService.searchMovies(query);
         return ResponseEntity.ok(ds);
     }
@@ -35,7 +36,6 @@ public class MovieController {
     @CrossOrigin(origins = "*")
     @GetMapping("/top-10")
     public ResponseEntity<MovieResponse> searchMovie() {
-        MovieService movieService = new MovieService();
         MovieResponse ds = movieService.fetchTopMovies();
         return ResponseEntity.ok(ds);
     }
