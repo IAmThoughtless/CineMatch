@@ -22,7 +22,7 @@ public class MovieService {
      * @return MovieResponse object or null if the API call fails.
      */
     public MovieResponse fetchTopMovies() {
-        String url = "https://api.themoviedb.org/3/movie/popular?api_key=" + TMDB_API_KEY + "&language=el-GR";
+        String url = "https://api.themoviedb.org/3/movie/popular?api_key=" + TMDB_API_KEY;
 
         try {
             HttpClient client = HttpClient.newHttpClient();

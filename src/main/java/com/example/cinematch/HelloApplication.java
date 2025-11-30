@@ -365,7 +365,7 @@ public class HelloApplication extends Application {
                 Label movieDetails = new Label(String.format("⭐ %.1f | %s", m.vote_average, date));
                 movieDetails.setStyle("-fx-text-fill: #cccccc; -fx-font-size: 14px;");
 
-                Label clickHint = new Label("Λεπτομέρειες ...");
+                Label clickHint = new Label("Details ...");
                 clickHint.setStyle("-fx-text-fill: #555; -fx-font-style: italic; -fx-font-size: 12px;");
 
                 VBox textContent = new VBox(5, movieTitle, movieDetails, clickHint);
@@ -750,7 +750,7 @@ public class HelloApplication extends Application {
     private void showMovieDetails(com.example.cinematch.Movie m) {
 
 
-        Button backBtn = new Button("⬅ Πίσω στη Λίστα");
+        Button backBtn = new Button("⬅ Back");
         backBtn.setStyle("-fx-background-color: transparent; -fx-text-fill: #E50914; -fx-font-size: 16px; -fx-font-weight: bold; -fx-cursor: hand;");
         backBtn.setOnAction(e -> {
 
