@@ -22,7 +22,7 @@ public class MovieService {
      * @return MovieResponse object or null if the API call fails.
      */
     public MovieResponse fetchTopMovies() {
-        String url = "https://api.themoviedb.org/3/movie/popular?api_key=" + TMDB_API_KEY;
+        String url = "https://api.themoviedb.org/3/movie/popular?api_key=" + TMDB_API_KEY + "&language=el-GR";
 
         try {
             HttpClient client = HttpClient.newHttpClient();
@@ -53,9 +53,10 @@ public class MovieService {
      */
     public MovieResponse searchMovies(String query) {
         try {
-
             String encodedQuery = URLEncoder.encode(query, StandardCharsets.UTF_8);
-            String url = "https://api.themoviedb.org/3/search/movie?api_key=" + TMDB_API_KEY + "&query=" + encodedQuery;
+
+
+            String url = "https://api.themoviedb.org/3/search/movie?api_key=" + TMDB_API_KEY + "&query=" + encodedQuery + "&language=el-GR";
 
             HttpClient client = HttpClient.newHttpClient();
             HttpRequest request = HttpRequest.newBuilder()
