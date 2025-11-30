@@ -333,7 +333,6 @@ public class HelloApplication extends Application {
         root.setCenter(regForm);
     }
 
-    // --- Helper Methods ---
     private VBox buildMovieListUI(String headerText, MovieResponse movieResponse) {
 
         Label titleLabel = new Label(headerText);
@@ -344,47 +343,64 @@ public class HelloApplication extends Application {
         movieListView.setAlignment(Pos.TOP_CENTER);
         movieListView.setMaxWidth(800);
 
+        if (movieResponse == null || movieResponse.results == null || movieResponse.results.isEmpty()) {
+            Label noResultsLabel = new Label("No movies found.");
+            noResultsLabel.setStyle("-fx-text-fill: white; -fx-font-size: 18px;");
+            movieListView.getChildren().add(noResultsLabel);
+        } else {
+            int limit = Math.min(20, movieResponse.results.size());
 
-        int limit = Math.min(20, movieResponse.results.size());
+            for (int i = 0; i < limit; i++) {
+                com.example.cinematch.Movie m = movieResponse.results.get(i);
 
-        for (int i = 0; i < limit; i++) {
-            Movie m = movieResponse.results.get(i);
+                ImageView posterView = createPosterImageView(m.poster_path);
 
-            ImageView posterView = createPosterImageView(m.poster_path);
+                posterView.setFitWidth(80);
+                posterView.setFitHeight(120);
 
-            Label movieTitle = new Label(m.title);
-            movieTitle.setStyle("-fx-text-fill: white; -fx-font-size: 20px; -fx-font-weight: bold;");
+                Label movieTitle = new Label(m.title);
+                movieTitle.setStyle("-fx-text-fill: white; -fx-font-size: 20px; -fx-font-weight: bold;");
 
-            Label movieDetails = new Label(
-                    String.format("Rating: %.1f/10 (%d votes) | Release: %s",
-                            m.vote_average, m.vote_count, (m.release_date != null ? m.release_date : "N/A")));
-            movieDetails.setStyle("-fx-text-fill: #aaa; -fx-font-size: 14px;");
+                String date = (m.release_date != null && !m.release_date.isEmpty()) ? m.release_date : "N/A";
+                Label movieDetails = new Label(String.format("⭐ %.1f | %s", m.vote_average, date));
+                movieDetails.setStyle("-fx-text-fill: #cccccc; -fx-font-size: 14px;");
 
-            String overviewText = m.overview != null ? m.overview : "No description available.";
-            Label overview = new Label(
-                    (overviewText.length() > 140 ? overviewText.substring(0, 140) + "..." : overviewText));
-            overview.setWrapText(true);
-            overview.setStyle("-fx-text-fill: #ccc;");
+                Label clickHint = new Label("Details ...");
+                clickHint.setStyle("-fx-text-fill: #555; -fx-font-style: italic; -fx-font-size: 12px;");
 
-            VBox textContent = new VBox(5, movieTitle, movieDetails, overview);
+                VBox textContent = new VBox(5, movieTitle, movieDetails, clickHint);
+                textContent.setAlignment(Pos.CENTER_LEFT);
 
-            HBox movieCard = new HBox(20.0, posterView, textContent);
-            movieCard.setAlignment(Pos.CENTER_LEFT);
-            HBox.setHgrow(textContent, Priority.ALWAYS);
+                HBox movieCard = new HBox(20.0, posterView, textContent);
+                movieCard.setAlignment(Pos.CENTER_LEFT);
+                HBox.setHgrow(textContent, Priority.ALWAYS);
 
-            movieListView.getChildren().add(movieCard);
 
-            if (i < limit - 1) {
-                Region separator = new Region();
-                separator.setPrefHeight(1);
-                separator.setStyle("-fx-background-color: #333;");
-                movieListView.getChildren().add(separator);
+                movieCard.setStyle("-fx-cursor: hand; -fx-background-color: transparent;");
+
+
+                movieCard.setOnMouseClicked(event -> showMovieDetails(m));
+
+
+                movieCard.setOnMouseEntered(e -> movieCard.setStyle("-fx-cursor: hand; -fx-background-color: rgba(255,255,255,0.1); -fx-background-radius: 10;"));
+                movieCard.setOnMouseExited(e -> movieCard.setStyle("-fx-cursor: hand; -fx-background-color: transparent;"));
+
+
+                movieListView.getChildren().add(movieCard);
+
+                if (i < limit - 1) {
+                    Region separator = new Region();
+                    separator.setPrefHeight(1);
+                    separator.setStyle("-fx-background-color: #333;");
+                    movieListView.getChildren().add(separator);
+                }
             }
         }
 
         ScrollPane scrollPane = new ScrollPane(movieListView);
         scrollPane.setFitToWidth(true);
         scrollPane.setStyle("-fx-background: transparent; -fx-background-color: transparent;");
+        scrollPane.setPannable(true);
 
         VBox finalLayout = new VBox(20, titleLabel, scrollPane);
         finalLayout.setPadding(new Insets(30));
@@ -729,6 +745,59 @@ public class HelloApplication extends Application {
         layout.setAlignment(Pos.CENTER);
 
         root.setCenter(layout);
+    }
+
+    private void showMovieDetails(com.example.cinematch.Movie m) {
+
+
+        Button backBtn = new Button("⬅ Back");
+        backBtn.setStyle("-fx-background-color: transparent; -fx-text-fill: #E50914; -fx-font-size: 16px; -fx-font-weight: bold; -fx-cursor: hand;");
+        backBtn.setOnAction(e -> {
+
+            showHomeView();
+        });
+
+        // 2. Μεγάλη Αφίσα
+        ImageView posterView = createPosterImageView(m.poster_path);
+        posterView.setFitWidth(300);
+        posterView.setFitHeight(450);
+
+
+        Label titleLabel = new Label(m.title);
+        titleLabel.setStyle("-fx-text-fill: white; -fx-font-size: 36px; -fx-font-weight: bold;");
+        titleLabel.setWrapText(true);
+
+
+        String date = (m.release_date != null && !m.release_date.isEmpty()) ? m.release_date : "N/A";
+        Label metaLabel = new Label("📅 " + date + "  |  ⭐ " + m.vote_average + "/10 (" + m.vote_count + " votes)");
+        metaLabel.setStyle("-fx-text-fill: #cccccc; -fx-font-size: 16px;");
+
+
+        String overviewText = (m.overview != null && !m.overview.isEmpty()) ? m.overview : "Δεν υπάρχει διαθέσιμη περιγραφή.";
+        Label overviewLabel = new Label(overviewText);
+        overviewLabel.setStyle("-fx-text-fill: white; -fx-font-size: 18px;");
+        overviewLabel.setWrapText(true);
+        overviewLabel.setMaxWidth(600);
+
+
+        VBox infoBox = new VBox(20, titleLabel, metaLabel, overviewLabel);
+        infoBox.setAlignment(Pos.CENTER_LEFT);
+
+
+        HBox content = new HBox(40, posterView, infoBox);
+        content.setAlignment(Pos.CENTER);
+        content.setPadding(new Insets(40));
+
+
+        ScrollPane scrollPane = new ScrollPane(content);
+        scrollPane.setFitToWidth(true);
+        scrollPane.setStyle("-fx-background: transparent; -fx-background-color: transparent;");
+
+
+        VBox finalLayout = new VBox(20, backBtn, scrollPane);
+        finalLayout.setPadding(new Insets(20));
+
+        root.setCenter(finalLayout);
     }
 
     public static void main(String[] args) {
