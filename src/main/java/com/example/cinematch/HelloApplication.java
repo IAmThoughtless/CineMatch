@@ -571,7 +571,7 @@ public class HelloApplication extends Application {
         loadedQuestions = null; // Καθαρισμός
 
 
-        Label loadingLabel = new Label("Generating Quiz from AI...\nPlease wait, this takes a few seconds!");
+        Label loadingLabel = new Label("Generating Quiz...\nPlease wait, this takes a few seconds!");
         loadingLabel.setStyle("-fx-text-fill: white; -fx-font-size: 20px; -fx-text-alignment: center;");
         ProgressIndicator indicator = new ProgressIndicator();
 
@@ -641,7 +641,7 @@ public class HelloApplication extends Application {
         Label questionLabel = new Label(q.question);
         questionLabel.setStyle("-fx-text-fill: white; -fx-font-size: 20px; -fx-font-weight: bold;");
         questionLabel.setWrapText(true);
-        questionLabel.setMaxWidth(600);
+        questionLabel.setMaxWidth(1000);
         questionLabel.setAlignment(Pos.CENTER);
 
 
@@ -653,7 +653,7 @@ public class HelloApplication extends Application {
         resultLabel.setStyle("-fx-font-size: 18px; -fx-font-weight: bold;");
 
 
-        Button nextBtn = new Button(currentQuestionIndex == TOTAL_QUESTIONS ? "Δες τα Αποτελέσματα" : "Επόμενη Ερώτηση");
+        Button nextBtn = new Button(currentQuestionIndex == TOTAL_QUESTIONS ? "Look at the results" : "Next Question");
         nextBtn.setVisible(false);
         nextBtn.setStyle("-fx-background-color: #E50914; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand; -fx-padding: 10 20;");
         nextBtn.setOnAction(e -> loadNextQuestion());
@@ -671,12 +671,12 @@ public class HelloApplication extends Application {
                 if (option.equals(q.correctAnswer)) {
                     score++;
 
-                    resultLabel.setText(" Σωστά! Η απάντηση είναι: " + q.correctAnswer);
+                    resultLabel.setText(" Correct! The answer is: " + q.correctAnswer);
                     resultLabel.setStyle("-fx-text-fill: lightgreen; -fx-font-size: 18px; -fx-font-weight: bold;");
                     optionBtn.setStyle("-fx-background-color: green; -fx-text-fill: white; -fx-background-radius: 5;");
                 } else {
 
-                    resultLabel.setText(" Λάθος! Η σωστή απάντηση ήταν: " + q.correctAnswer);
+                    resultLabel.setText(" Wrong! The correct answer is: " + q.correctAnswer);
                     resultLabel.setStyle("-fx-text-fill: #ff4444; -fx-font-size: 18px; -fx-font-weight: bold;");
                     optionBtn.setStyle("-fx-background-color: #ff4444; -fx-text-fill: white; -fx-background-radius: 5;");
                 }
@@ -700,25 +700,25 @@ public class HelloApplication extends Application {
 
 
     private void showQuizResult() {
-        Label title = new Label(" Τέλος quiz !");
+        Label title = new Label(" End of Quiz !");
         title.setStyle("-fx-text-fill: #E50914; -fx-font-size: 32px; -fx-font-weight: bold;");
 
         Label scoreLabel = new Label("Your Score: " + score + " / " + TOTAL_QUESTIONS);
         scoreLabel.setStyle("-fx-text-fill: white; -fx-font-size: 24px;");
 
         String message;
-        if (score == 5) message = "Τέλεια!!!";
-        else if (score >= 3) message = "Κάλη Δουλεία!!";
-        else message = "Καλή Προσπάθεια";
+        if (score == 5) message = "Perfect!!!";
+        else if (score >= 3) message = "Great Job!!";
+        else message = "Nice Try";
 
         Label msgLabel = new Label(message);
         msgLabel.setStyle("-fx-text-fill: #cccccc; -fx-font-size: 18px;");
 
-        Button playAgainBtn = new Button("Παίξε ξανά");
+        Button playAgainBtn = new Button("Play Again");
         playAgainBtn.setStyle("-fx-background-color: white; -fx-text-fill: black; -fx-font-weight: bold; -fx-cursor: hand; -fx-padding: 10 20;");
         playAgainBtn.setOnAction(e -> startQuizSession());
 
-        Button homeBtn = new Button("Πίσω στην αρχική");
+        Button homeBtn = new Button("Back to Homepage");
         homeBtn.setStyle("-fx-background-color: #333; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand; -fx-padding: 10 20;");
         homeBtn.setOnAction(e -> showHomeView());
 
