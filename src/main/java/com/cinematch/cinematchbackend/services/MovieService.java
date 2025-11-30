@@ -2,6 +2,7 @@ package com.cinematch.cinematchbackend.services;
 
 import com.cinematch.cinematchbackend.model.MovieResponse;
 import com.google.gson.Gson;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.net.URI;
@@ -14,15 +15,18 @@ import java.nio.charset.StandardCharsets;
 @Service
 public class MovieService {
 
+    private final String tmdbApiKey;
 
-    private final String TMDB_API_KEY = "71890bc04b3c153a8abf55ea6cdfbe46";
+    public MovieService(@Value("${tmdb.api.key}") String tmdbApiKey) {
+        this.tmdbApiKey = tmdbApiKey;
+    }
 
     /**
      * Fetches a list of popular movies from the TMDB API.
      * @return MovieResponse object or null if the API call fails.
      */
     public MovieResponse fetchTopMovies() {
-        String url = "https://api.themoviedb.org/3/movie/popular?api_key=" + TMDB_API_KEY;
+        String url = "https://api.themoviedb.org/3/movie/popular?api_key=" + tmdbApiKey;
 
         try {
             HttpClient client = HttpClient.newHttpClient();
@@ -55,7 +59,7 @@ public class MovieService {
         try {
 
             String encodedQuery = URLEncoder.encode(query, StandardCharsets.UTF_8);
-            String url = "https://api.themoviedb.org/3/search/movie?api_key=" + TMDB_API_KEY + "&query=" + encodedQuery;
+            String url = "https://api.themoviedb.org/3/search/movie?api_key=" + tmdbApiKey + "&query=" + encodedQuery;
 
             HttpClient client = HttpClient.newHttpClient();
             HttpRequest request = HttpRequest.newBuilder()
@@ -85,7 +89,7 @@ public class MovieService {
      */
     public MovieResponse getMovie(String movieId) {
         try {
-            String url = "https://api.themoviedb.org/3/movie/" + movieId + "?api_key=" + TMDB_API_KEY;
+            String url = "https://api.themoviedb.org/3/movie/" + movieId + "?api_key=" + tmdbApiKey;
 
             HttpClient client = HttpClient.newHttpClient();
             HttpRequest request = HttpRequest.newBuilder()

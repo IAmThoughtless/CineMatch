@@ -27,6 +27,10 @@ import java.net.http.HttpResponse;
 public class HelloApplication extends Application {
 
     private BorderPane root;
+    private int currentQuestionIndex = 0;
+    private int score = 0;
+    private final int TOTAL_QUESTIONS = 5;
+    private java.util.List<com.cinematch.cinematchbackend.model.QuizQuestion> loadedQuestions;
 
     @Override
     public void start(Stage primaryStage) {
@@ -516,6 +520,7 @@ public class HelloApplication extends Application {
 
         Button quizBtn = new Button("Quiz");
         quizBtn.setStyle("-fx-background-color: transparent; -fx-text-fill: white; -fx-font-size: 14px; -fx-font-weight: bold; -fx-cursor: hand; ");
+        quizBtn.setOnAction(event -> startQuizSession());
         makeButtonAnimated(quizBtn, false);
 
         // --- NEW LOGIC START ---
@@ -559,7 +564,174 @@ public class HelloApplication extends Application {
         return header;
     }
 
+
+    private void startQuizSession() {
+        score = 0;
+        currentQuestionIndex = 0;
+        loadedQuestions = null; // Καθαρισμός
+
+
+        Label loadingLabel = new Label("Generating Quiz...\nPlease wait, this takes a few seconds!");
+        loadingLabel.setStyle("-fx-text-fill: white; -fx-font-size: 20px; -fx-text-alignment: center;");
+        ProgressIndicator indicator = new ProgressIndicator();
+
+        VBox loadingBox = new VBox(20, loadingLabel, indicator);
+        loadingBox.setAlignment(Pos.CENTER);
+        root.setCenter(loadingBox);
+
+
+        new Thread(() -> {
+            try {
+                HttpClient client = HttpClient.newHttpClient();
+                HttpRequest request = HttpRequest.newBuilder()
+                        .uri(URI.create("http://localhost:8080/api/quiz/batch"))
+                        .header("Content-Type", "application/json")
+                        .build();
+
+                HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+                Platform.runLater(() -> {
+                    if (response.statusCode() == 200) {
+                        Gson gson = new Gson();
+                        java.lang.reflect.Type listType = new com.google.gson.reflect.TypeToken<java.util.List<com.cinematch.cinematchbackend.model.QuizQuestion>>(){}.getType();
+
+                        loadedQuestions = gson.fromJson(response.body(), listType);
+
+                        if (loadedQuestions != null && !loadedQuestions.isEmpty()) {
+                            loadNextQuestion();
+                        } else {
+                            loadingLabel.setText("Failed to load questions.");
+                        }
+                    } else {
+                        loadingLabel.setText("Error from server: " + response.statusCode());
+                    }
+                });
+
+            } catch (Exception ex) {
+                Platform.runLater(() -> loadingLabel.setText("Connection Error: " + ex.getMessage()));
+            }
+        }).start();
+    }
+
+
+    private void loadNextQuestion() {
+        if (currentQuestionIndex >= loadedQuestions.size()) {
+            showQuizResult();
+            return;
+        }
+
+
+        com.cinematch.cinematchbackend.model.QuizQuestion q = loadedQuestions.get(currentQuestionIndex);
+
+
+        currentQuestionIndex++;
+
+
+        displayQuestionUI(q);
+    }
+
+
+    private void displayQuestionUI(com.cinematch.cinematchbackend.model.QuizQuestion q) {
+
+
+        Label headerLabel = new Label("Question " + currentQuestionIndex + " / " + TOTAL_QUESTIONS);
+        headerLabel.setStyle("-fx-text-fill: #cccccc; -fx-font-size: 16px;");
+
+
+        Label questionLabel = new Label(q.question);
+        questionLabel.setStyle("-fx-text-fill: white; -fx-font-size: 20px; -fx-font-weight: bold;");
+        questionLabel.setWrapText(true);
+        questionLabel.setMaxWidth(1000);
+        questionLabel.setAlignment(Pos.CENTER);
+
+
+        VBox optionsBox = new VBox(15);
+        optionsBox.setAlignment(Pos.CENTER);
+
+
+        Label resultLabel = new Label("");
+        resultLabel.setStyle("-fx-font-size: 18px; -fx-font-weight: bold;");
+
+
+        Button nextBtn = new Button(currentQuestionIndex == TOTAL_QUESTIONS ? "Look at the results" : "Next Question");
+        nextBtn.setVisible(false);
+        nextBtn.setStyle("-fx-background-color: #E50914; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand; -fx-padding: 10 20;");
+        nextBtn.setOnAction(e -> loadNextQuestion());
+
+
+        for (String option : q.options) {
+            Button optionBtn = new Button(option);
+            optionBtn.setPrefWidth(400);
+            optionBtn.setPrefHeight(45);
+            optionBtn.setStyle("-fx-background-color: #333; -fx-text-fill: white; -fx-font-size: 14px; -fx-cursor: hand; -fx-background-radius: 5;");
+
+
+            optionBtn.setOnAction(event -> {
+
+                if (option.equals(q.correctAnswer)) {
+                    score++;
+
+                    resultLabel.setText(" Correct! The answer is: " + q.correctAnswer);
+                    resultLabel.setStyle("-fx-text-fill: lightgreen; -fx-font-size: 18px; -fx-font-weight: bold;");
+                    optionBtn.setStyle("-fx-background-color: green; -fx-text-fill: white; -fx-background-radius: 5;");
+                } else {
+
+                    resultLabel.setText(" Wrong! The correct answer is: " + q.correctAnswer);
+                    resultLabel.setStyle("-fx-text-fill: #ff4444; -fx-font-size: 18px; -fx-font-weight: bold;");
+                    optionBtn.setStyle("-fx-background-color: #ff4444; -fx-text-fill: white; -fx-background-radius: 5;");
+                }
+
+
+                optionsBox.setDisable(true);
+
+                nextBtn.setVisible(true);
+            });
+
+            optionsBox.getChildren().add(optionBtn);
+        }
+
+
+        VBox layout = new VBox(25, headerLabel, questionLabel, optionsBox, resultLabel, nextBtn);
+        layout.setAlignment(Pos.CENTER);
+        layout.setPadding(new Insets(40));
+
+        root.setCenter(layout);
+    }
+
+
+    private void showQuizResult() {
+        Label title = new Label(" End of Quiz !");
+        title.setStyle("-fx-text-fill: #E50914; -fx-font-size: 32px; -fx-font-weight: bold;");
+
+        Label scoreLabel = new Label("Your Score: " + score + " / " + TOTAL_QUESTIONS);
+        scoreLabel.setStyle("-fx-text-fill: white; -fx-font-size: 24px;");
+
+        String message;
+        if (score == 5) message = "Perfect!!!";
+        else if (score >= 3) message = "Great Job!!";
+        else message = "Nice Try";
+
+        Label msgLabel = new Label(message);
+        msgLabel.setStyle("-fx-text-fill: #cccccc; -fx-font-size: 18px;");
+
+        Button playAgainBtn = new Button("Play Again");
+        playAgainBtn.setStyle("-fx-background-color: white; -fx-text-fill: black; -fx-font-weight: bold; -fx-cursor: hand; -fx-padding: 10 20;");
+        playAgainBtn.setOnAction(e -> startQuizSession());
+
+        Button homeBtn = new Button("Back to Homepage");
+        homeBtn.setStyle("-fx-background-color: #333; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand; -fx-padding: 10 20;");
+        homeBtn.setOnAction(e -> showHomeView());
+
+        HBox buttons = new HBox(20, playAgainBtn, homeBtn);
+        buttons.setAlignment(Pos.CENTER);
+
+        VBox layout = new VBox(30, title, scoreLabel, msgLabel, buttons);
+        layout.setAlignment(Pos.CENTER);
+
+        root.setCenter(layout);
+    }
+
     public static void main(String[] args) {
-        launch(args);
+        launch();
     }
 }

@@ -1,12 +1,9 @@
 package com.cinematch.cinematchbackend.controller;
 
 import com.cinematch.cinematchbackend.model.MovieResponse;
-import com.cinematch.cinematchbackend.model.MovieSearchPayload;
-import com.cinematch.cinematchbackend.model.User;
 import com.cinematch.cinematchbackend.repository.UserRepository;
 import com.cinematch.cinematchbackend.services.MovieService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
