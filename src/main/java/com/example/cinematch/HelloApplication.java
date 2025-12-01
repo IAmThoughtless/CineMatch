@@ -77,7 +77,7 @@ public class HelloApplication extends Application {
         root.setTop(header);
         root.setStyle("-fx-background-color: linear-gradient(to bottom right, #141E30, #243B55);");
 
-        Scene scene = new Scene(root, 900, 600);
+        Scene scene = new Scene(root, 900, 650);
         primaryStage.setTitle("CineMatch App");
         primaryStage.setScene(scene);
         primaryStage.show();
@@ -655,9 +655,9 @@ public class HelloApplication extends Application {
 
 
         Label questionLabel = new Label(q.question);
-        questionLabel.setStyle("-fx-text-fill: white; -fx-font-size: 20px; -fx-font-weight: bold;");
+        questionLabel.setStyle("-fx-text-fill: white; -fx-font-size: 16px; -fx-font-weight: bold;");
         questionLabel.setWrapText(true);
-        questionLabel.setMaxWidth(1000);
+        questionLabel.setMaxWidth(500);
         questionLabel.setAlignment(Pos.CENTER);
 
 
