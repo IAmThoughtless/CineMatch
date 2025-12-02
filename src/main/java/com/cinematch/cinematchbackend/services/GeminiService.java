@@ -33,7 +33,7 @@ public class GeminiService {
         try {
             System.out.println("--- FETCHING 5 QUESTIONS FROM GEMINI ---");
 
-            String prompt = "Generate 5 unique, short and tough movie trivia questions in english. " +
+            String prompt = "Generate 5 unique movie trivia questions in english. " +
                     "Return ONLY a JSON ARRAY (list) where each object has EXACTLY this format: " +
                     "{ \"question\": \"The question text\", \"options\": [\"Option A\", \"Option B\", \"Option C\", \"Option D\"], \"correctAnswer\": \"The exact string of the correct option\" } " +
                     "IMPORTANT: The key for the answer MUST be 'correctAnswer' (camelCase). Do NOT use 'correct_answer' or 'answer'. " +
@@ -51,12 +51,8 @@ public class GeminiService {
             JsonArray contents = new JsonArray();
             contents.add(content);
 
-            JsonObject generationConfig = new JsonObject();
-            generationConfig.addProperty("maxOutputTokens", 2048);
-
             JsonObject root = new JsonObject();
             root.add("contents", contents);
-            root.add("generationConfig", generationConfig);
 
             String requestBody = new Gson().toJson(root);
 
