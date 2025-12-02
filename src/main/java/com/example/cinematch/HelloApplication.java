@@ -26,6 +26,7 @@ import java.net.http.HttpResponse;
 
 public class HelloApplication extends Application {
 
+    private VBox lastMovieListView;
     private BorderPane root;
     private int currentQuestionIndex = 0;
     private int score = 0;
@@ -144,6 +145,7 @@ public class HelloApplication extends Application {
                     }
                     else {
                         VBox top10Content = buildMovieListUI("⭐ Top 10 Popular Movies ⭐", movies);
+                        lastMovieListView = top10Content;
                         root.setCenter(top10Content);
                     }
 
@@ -468,6 +470,7 @@ public class HelloApplication extends Application {
 
                         if (movieResponse != null && movieResponse.results != null && !movieResponse.results.isEmpty()) {
                             VBox resultsUI = buildMovieListUI("Search Results: " + query, movieResponse);
+                            lastMovieListView = resultsUI;
                             root.setCenter(resultsUI);
                         } else {
                             Label errorLabel = new Label("No movies found for: " + query);
@@ -753,8 +756,11 @@ public class HelloApplication extends Application {
         Button backBtn = new Button("⬅ Back");
         backBtn.setStyle("-fx-background-color: transparent; -fx-text-fill: #E50914; -fx-font-size: 16px; -fx-font-weight: bold; -fx-cursor: hand;");
         backBtn.setOnAction(e -> {
-
-            showHomeView();
+            if (lastMovieListView != null) {
+                root.setCenter(lastMovieListView);
+            } else {
+                showHomeView();
+            }
         });
 
         // 2. Μεγάλη Αφίσα
