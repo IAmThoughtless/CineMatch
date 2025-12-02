@@ -754,7 +754,7 @@ public class HelloApplication extends Application {
         backBtn.setStyle("-fx-background-color: transparent; -fx-text-fill: #E50914; -fx-font-size: 16px; -fx-font-weight: bold; -fx-cursor: hand;");
         backBtn.setOnAction(e -> {
 
-            showHomeView();
+            showTop10View();
         });
 
         // 2. Μεγάλη Αφίσα
