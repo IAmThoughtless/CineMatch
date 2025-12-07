@@ -3,6 +3,7 @@ package com.example.cinematch;
 // Import your Backend Models
 // If your User class is in a different package, change the line above!
 
+import com.cinematch.cinematchbackend.model.MovieResponse;
 import com.google.gson.Gson;
 import javafx.application.Application;
 import javafx.application.Platform;
