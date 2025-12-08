@@ -27,6 +27,7 @@ public class MovieService {
      * @return MovieResponse object or null if the API call fails.
      */
     public MovieResponse fetchTopMovies() {
+
         String url = "https://api.themoviedb.org/3/movie/popular?api_key=" + tmdbApiKey;
 
         try {
@@ -90,7 +91,7 @@ public class MovieService {
      */
     public Movie getMovieDetails(Long movieId) {
         try {
-            String url = "https://api.themoviedb.org/3/movie/" + movieId + "?api_key=" + tmdbApiKey;
+            String url = "https://api.themoviedb.org/3/movie/" + movieId + "?api_key=" + tmdbApiKey + "&append_to_response=reviews";
 
             HttpClient client = HttpClient.newHttpClient();
             HttpRequest request = HttpRequest.newBuilder()

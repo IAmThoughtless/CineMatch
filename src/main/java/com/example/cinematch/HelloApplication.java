@@ -3,10 +3,12 @@ package com.example.cinematch;
 // Import your Backend Models
 // If your User class is in a different package, change the line above!
 
-import com.cinematch.cinematchbackend.model.Movie;
 import com.cinematch.cinematchbackend.model.MovieResponse;
+import com.cinematch.cinematchbackend.model.Movie;
+import com.cinematch.cinematchbackend.model.Review;
 import com.cinematch.cinematchbackend.model.User;
 import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.geometry.Insets;
@@ -73,7 +75,7 @@ public class HelloApplication extends Application {
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
         HBox header = new HBox(15);
-        header.getChildren().addAll(logoLabel, spacer, homeBtn, top10Btn, quizBtn);
+        header.getChildren().addAll(logoLabel, spacer, homeBtn, top10Btn, quizBtn, loginBtn);
         header.setPadding(new Insets(15, 25, 15, 25));
         header.setAlignment(Pos.CENTER_LEFT);
         header.setStyle("-fx-background-color: rgba(0, 0, 0, 0.3);");
@@ -270,11 +272,9 @@ public class HelloApplication extends Application {
                             messageLabel.setStyle("-fx-text-fill: lightgreen;");
                             messageLabel.setText("Login Successful!");
                             Gson gson = new Gson();
-                            com.cinematch.cinematchbackend.model.User loggedInUser = gson.fromJson(response.body(), com.cinematch.cinematchbackend.model.User.class);
-                            
+                            User loggedInUser = gson.fromJson(response.body(), User.class);
                             UserSession.getInstance().setUsername(loggedInUser.getUsername());
                             UserSession.getInstance().setUserId(loggedInUser.getId());
-
                             showHomeView();
                         } else {
                             messageLabel.setStyle("-fx-text-fill: red;");
@@ -685,7 +685,7 @@ public class HelloApplication extends Application {
         HBox header = new HBox(15);
         header.getChildren().addAll(logoLabel, spacer, homeBtn, top10Btn, quizBtn);
 
-        // Check if user is logged in using our new Session fields
+        // Check if user is logged in using our new Session class
         if (UserSession.getInstance().isLoggedIn()) {
             // 1. Show Welcome Message
             Label welcomeUser = new Label("Welcome, " + UserSession.getInstance().getUsername());
@@ -753,7 +753,7 @@ public class HelloApplication extends Application {
                 Platform.runLater(() -> {
                     if (response.statusCode() == 200) {
                         Gson gson = new Gson();
-                        java.lang.reflect.Type listType = new com.google.gson.reflect.TypeToken<java.util.List<com.cinematch.cinematchbackend.model.QuizQuestion>>(){}.getType();
+                        java.lang.reflect.Type listType = new TypeToken<java.util.List<com.cinematch.cinematchbackend.model.QuizQuestion>>(){}.getType();
 
                         loadedQuestions = gson.fromJson(response.body(), listType);
 
@@ -891,7 +891,8 @@ public class HelloApplication extends Application {
         root.setCenter(layout);
     }
 
-    private void showMovieDetails(Movie m) {
+    private void showMovieDetails(Movie initialMovieData) {
+        // Κουμπί επιστροφής
         Button backBtn = new Button("⬅ Back");
         backBtn.setStyle("-fx-background-color: transparent; -fx-text-fill: #E50914; -fx-font-size: 16px; -fx-font-weight: bold; -fx-cursor: hand;");
         backBtn.setOnAction(e -> {
@@ -902,72 +903,189 @@ public class HelloApplication extends Application {
             }
         });
 
-        ImageView posterView = createPosterImageView(m.getPoster_path());
+        // --- Βασικά Στοιχεία //
+        ImageView posterView = createPosterImageView(initialMovieData.getPoster_path());
         posterView.setFitWidth(300);
         posterView.setFitHeight(450);
 
-        Label titleLabel = new Label(m.getTitle());
+        Label titleLabel = new Label(initialMovieData.getTitle());
         titleLabel.setStyle("-fx-text-fill: white; -fx-font-size: 36px; -fx-font-weight: bold;");
         titleLabel.setWrapText(true);
 
-        String date = (m.getRelease_date() != null && !m.getRelease_date().isEmpty()) ? m.getRelease_date() : "N/A";
-        Label metaLabel = new Label("📅 " + date + "  |  ⭐ " + m.getVote_average() + "/10 (" + m.getVote_count() + " votes)");
+        String date = (initialMovieData.getRelease_date() != null && !initialMovieData.getRelease_date().isEmpty()) ? initialMovieData.getRelease_date() : "N/A";
+        Label metaLabel = new Label("📅 " + date + "  |  ⭐ " + initialMovieData.getVote_average() + "/10 (" + initialMovieData.getVote_count() + " votes)");
         metaLabel.setStyle("-fx-text-fill: #cccccc; -fx-font-size: 16px;");
 
-        String overviewText = (m.getOverview() != null && !m.getOverview().isEmpty()) ? m.getOverview() : "Δεν υπάρχει διαθέσιμη περιγραφή.";
+        String overviewText = (initialMovieData.getOverview() != null && !initialMovieData.getOverview().isEmpty()) ? initialMovieData.getOverview() : "Δεν υπάρχει διαθέσιμη περιγραφή.";
         Label overviewLabel = new Label(overviewText);
         overviewLabel.setStyle("-fx-text-fill: white; -fx-font-size: 18px;");
         overviewLabel.setWrapText(true);
         overviewLabel.setMaxWidth(600);
 
-        VBox infoBox = new VBox(20, titleLabel, metaLabel, overviewLabel);
-        infoBox.setAlignment(Pos.CENTER_LEFT);
-
-        Button starBtn = new Button();
-        infoBox.getChildren().add(starBtn);
+        // --- Κουμπί Star ---
+        Button starBtn = new Button("Loading...");
+        starBtn.setDisable(true);
 
         if (UserSession.getInstance().isLoggedIn()) {
             new Thread(() -> {
-                boolean isStarred = isMovieStarred(m.getId());
+                boolean isStarred = isMovieStarred(initialMovieData.getId());
                 Platform.runLater(() -> {
+                    starBtn.setDisable(false);
                     if (isStarred) {
-                        starBtn.setText("Unstar");
-                        starBtn.setStyle("-fx-background-color: #E50914; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: 5;");
-                        makeButtonAnimated(starBtn, true);
-                        starBtn.setOnAction(e -> {
-                            unstarMovie(m.getId());
-                            starBtn.setText("Star");
-                        });
+                        setupUnstarButton(starBtn, initialMovieData);
                     } else {
-                        starBtn.setText("⭐ Star Movie");
-                        starBtn.setStyle("-fx-background-color: #E50914; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: 5;");
-                        makeButtonAnimated(starBtn, true);
-                        starBtn.setOnAction(e -> {
-                            starMovie(m);
-                            starBtn.setText("Unstar");
-                        });
+                        setupStarButton(starBtn, initialMovieData);
                     }
                 });
             }).start();
         } else {
             starBtn.setText("⭐ Star Movie");
             starBtn.setStyle("-fx-background-color: #E50914; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: 5;");
-            makeButtonAnimated(starBtn, true);
-            starBtn.setOnAction(e -> showLoginView());
+            starBtn.setDisable(false);
+            starBtn.setOnAction(ev -> showLoginView());
         }
 
-        HBox content = new HBox(40, posterView, infoBox);
-        content.setAlignment(Pos.CENTER);
-        content.setPadding(new Insets(40));
+        VBox infoBox = new VBox(20, titleLabel, metaLabel, overviewLabel, starBtn);
+        infoBox.setAlignment(Pos.CENTER_LEFT);
 
-        ScrollPane scrollPane = new ScrollPane(content);
+        HBox topContent = new HBox(40, posterView, infoBox);
+        topContent.setAlignment(Pos.CENTER);
+        topContent.setPadding(new Insets(0, 0, 40, 0));
+
+        // --- ΤΜΗΜΑ ΚΡΙΤΙΚΩΝ (REVIEWS SECTION) ---
+        VBox reviewsContainer = new VBox(15);
+        reviewsContainer.setAlignment(Pos.TOP_LEFT);
+        reviewsContainer.setMaxWidth(800);
+
+        Label reviewsHeader = new Label("User Reviews");
+        reviewsHeader.setStyle("-fx-text-fill: #E50914; -fx-font-size: 24px; -fx-font-weight: bold;");
+
+        Label loadingReviewsLabel = new Label("Loading reviews from TMDb...");
+        loadingReviewsLabel.setStyle("-fx-text-fill: gray; -fx-font-style: italic;");
+
+        reviewsContainer.getChildren().addAll(reviewsHeader, loadingReviewsLabel);
+
+        // ---  UI ---
+        VBox mainContent = new VBox(20, topContent, reviewsContainer);
+        mainContent.setAlignment(Pos.TOP_CENTER);
+        mainContent.setPadding(new Insets(40));
+
+        ScrollPane scrollPane = new ScrollPane(mainContent);
         scrollPane.setFitToWidth(true);
         scrollPane.setStyle("-fx-background: transparent; -fx-background-color: transparent;");
+        scrollPane.setPannable(true);
 
         VBox finalLayout = new VBox(20, backBtn, scrollPane);
         finalLayout.setPadding(new Insets(20));
 
         root.setCenter(finalLayout);
+
+
+        new Thread(() -> {
+            try (HttpClient client = HttpClient.newHttpClient()) {
+                HttpRequest request = HttpRequest.newBuilder()
+                        .uri(URI.create("http://localhost:8080/api/movie/" + initialMovieData.getId()))
+                        .header("Content-Type", "application/json")
+                        .GET()
+                        .build();
+
+                HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+                Platform.runLater(() -> {
+                    if (response.statusCode() == 200) {
+                        Gson gson = new Gson();
+                        Movie fullMovie = gson.fromJson(response.body(), Movie.class);
+
+
+                        reviewsContainer.getChildren().remove(loadingReviewsLabel);
+
+                        if (fullMovie.getReviews() != null && fullMovie.getReviews().getResults() != null && !fullMovie.getReviews().getResults().isEmpty()) {
+
+
+                            for (Review review : fullMovie.getReviews().getResults()) {
+                                Label authorLabel = new Label("👤 " + review.getAuthor());
+                                authorLabel.setStyle("-fx-text-fill: #cccccc; -fx-font-weight: bold; -fx-font-size: 14px;");
+
+                                Label contentLabel = new Label();
+                                contentLabel.setStyle("-fx-text-fill: white; -fx-font-size: 14px;");
+                                contentLabel.setWrapText(true);
+                                contentLabel.setMaxWidth(750); // Σιγουρέψου ότι αυτό χωράει στο UI σου
+
+                                VBox reviewBox = new VBox(5);
+                                reviewBox.setStyle("-fx-background-color: rgba(255,255,255,0.05); -fx-padding: 15; -fx-background-radius: 10;");
+
+                                // --- ΛΟΓΙΚΗ EXPAND  ---
+                                int MAX_LENGTH = 400;
+
+                                if (review.getContent().length() > MAX_LENGTH) {
+                                    String fullText = review.getContent();
+                                    String truncatedText = review.getContent().substring(0, MAX_LENGTH) + "...";
+
+
+                                    contentLabel.setText(truncatedText);
+
+
+                                    javafx.scene.control.Hyperlink expandLink = new javafx.scene.control.Hyperlink("Read More ⬇");
+                                    expandLink.setStyle("-fx-text-fill: #E50914; -fx-border-color: transparent; -fx-font-weight: bold;");
+
+
+                                    expandLink.setOnAction(e -> {
+                                        if (expandLink.getText().equals("Read More ⬇")) {
+
+                                            contentLabel.setText(fullText);
+                                            expandLink.setText("Read Less ⬆");
+                                        } else {
+
+                                            contentLabel.setText(truncatedText);
+                                            expandLink.setText("Read More ⬇");
+                                        }
+                                    });
+
+                                    reviewBox.getChildren().addAll(authorLabel, contentLabel, expandLink);
+                                } else {
+
+                                    contentLabel.setText(review.getContent());
+                                    reviewBox.getChildren().addAll(authorLabel, contentLabel);
+                                }
+
+                                reviewsContainer.getChildren().add(reviewBox);
+                            }
+
+                        } else {
+                            Label noReviews = new Label("No reviews found for this movie.");
+                            noReviews.setStyle("-fx-text-fill: gray; -fx-font-size: 14px;");
+                            reviewsContainer.getChildren().add(noReviews);
+                        }
+                    } else {
+                        loadingReviewsLabel.setText("Failed to load reviews.");
+                    }
+                });
+
+            } catch (Exception ex) {
+                Platform.runLater(() -> loadingReviewsLabel.setText("Error loading reviews."));
+            }
+        }).start();
+    }
+
+
+    private void setupStarButton(Button btn, Movie m) {
+        btn.setText("⭐ Star Movie");
+        btn.setStyle("-fx-background-color: #E50914; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: 5;");
+        makeButtonAnimated(btn, true);
+        btn.setOnAction(ev -> {
+            starMovie(m);
+            setupUnstarButton(btn, m);
+        });
+    }
+
+    private void setupUnstarButton(Button btn, Movie m) {
+        btn.setText("Unstar");
+        btn.setStyle("-fx-background-color: #555; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: 5;");
+        makeButtonAnimated(btn, false);
+        btn.setOnAction(ev -> {
+            unstarMovie(m.getId());
+            setupStarButton(btn, m);
+        });
     }
 
     private void showMyStarsView() {
@@ -1028,7 +1146,7 @@ public class HelloApplication extends Application {
                 com.cinematch.cinematchbackend.model.UserStar star = new com.cinematch.cinematchbackend.model.UserStar();
                 star.setTmdbId(m.getId());
                 star.setTitle(m.getTitle());
-                com.cinematch.cinematchbackend.model.User user = new com.cinematch.cinematchbackend.model.User();
+                User user = new User();
                 user.setId(UserSession.getInstance().getUserId());
                 star.setUser(user);
 
