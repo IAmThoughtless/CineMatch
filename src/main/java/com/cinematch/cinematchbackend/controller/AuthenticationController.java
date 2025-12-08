@@ -38,7 +38,7 @@ public class AuthenticationController {
 
     @CrossOrigin(origins = "*")
     @PostMapping("/login")
-    public ResponseEntity<String> login(@RequestBody User loginRequest) {
+    public ResponseEntity<?> login(@RequestBody User loginRequest) {
 
         // 1. Search for the user in the Database
         Optional<User> dbUser = userRepository.findByUsername(loginRequest.getUsername());
@@ -50,7 +50,7 @@ public class AuthenticationController {
         // 2. Check if the password matches
         if (dbUser.get().getPassword().equals(loginRequest.getPassword())) {
             System.out.println("Backend: Login successful for: " + loginRequest.getUsername());
-            return ResponseEntity.ok("Login successful! Welcome.");
+            return ResponseEntity.ok(dbUser.get());
         } else {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid password.");
         }

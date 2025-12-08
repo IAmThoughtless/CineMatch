@@ -1,5 +1,6 @@
 package com.cinematch.cinematchbackend.services;
 
+import com.cinematch.cinematchbackend.model.Movie;
 import com.cinematch.cinematchbackend.model.MovieResponse;
 import com.google.gson.Gson;
 import org.springframework.beans.factory.annotation.Value;
@@ -87,7 +88,7 @@ public class MovieService {
      * @param movieId The movie id to search for.
      * @return MovieResponse object or null if the API call fails.
      */
-    public MovieResponse getMovie(String movieId) {
+    public Movie getMovieDetails(Long movieId) {
         try {
             String url = "https://api.themoviedb.org/3/movie/" + movieId + "?api_key=" + tmdbApiKey;
 
@@ -104,7 +105,7 @@ public class MovieService {
             }
 
             Gson gson = new Gson();
-            return gson.fromJson(response.body(), MovieResponse.class);
+            return gson.fromJson(response.body(), Movie.class);
 
         } catch (Exception e) {
             System.err.println("Error during search: " + e.getMessage());
@@ -118,7 +119,7 @@ public class MovieService {
      * @return MovieResponse object or null if the API call fails.
      */
     public MovieResponse fetchWhatsHot() {
-        // Χρησιμοποιούμε το endpoint "now_playing" (Ταινίες που παίζονται τώρα)
+        // Χρησιμοποιούμε το endpoint "now_playing"
         String url = "https://api.themoviedb.org/3/movie/now_playing?api_key=" + tmdbApiKey;
 
         try {
@@ -143,3 +144,4 @@ public class MovieService {
         }
     }
 }
+
