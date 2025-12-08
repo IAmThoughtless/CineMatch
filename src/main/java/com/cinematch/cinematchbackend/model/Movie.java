@@ -3,6 +3,7 @@ package com.cinematch.cinematchbackend.model;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
+import java.util.List;
 
 @Data
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -33,4 +34,14 @@ public class Movie {
 
     @JsonProperty("vote_count")
     private int vote_count;
+
+    @JsonProperty("reviews")
+    private ReviewsContainer reviews;
+
+    @Data
+    public static class ReviewsContainer {
+        @JsonProperty("results")
+        private List<Review> results;
+    }
+
 }
