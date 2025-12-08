@@ -18,6 +18,15 @@ public class MovieController {
     private MovieService movieService;
 
     @CrossOrigin(origins = "*")
+    @GetMapping("/whats-hot")
+    public ResponseEntity<MovieResponse> getWhatsHotMovies() {
+        // Η MovieService πρέπει να υλοποιήσει τη λογική για να φέρει
+        // μια ειδική λίστα ταινιών (π.χ. δημοφιλείς/πρόσφατες).
+        MovieResponse ds = movieService.fetchWhatsHot();
+        return ResponseEntity.ok(ds);
+    }
+
+    @CrossOrigin(origins = "*")
     @GetMapping("/{id}")
     public ResponseEntity<MovieResponse> getMovie(@PathVariable String id) {
         MovieResponse ds = movieService.getMovie(id);
