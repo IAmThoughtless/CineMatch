@@ -16,4 +16,8 @@ public class MovieResponse {
     public int total_pages;
     @JsonProperty("total_results")
     public int total_results;
+
+    public void setResults(List<Movie> results) {
+        this.results = results;
+    }
 }
