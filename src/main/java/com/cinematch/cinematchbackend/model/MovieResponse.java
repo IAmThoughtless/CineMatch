@@ -1,7 +1,5 @@
 package com.cinematch.cinematchbackend.model;
 
-import com.example.cinematch.Movie;
-
 import java.util.List;
 
 public class MovieResponse {
@@ -9,4 +7,8 @@ public class MovieResponse {
     public List<Movie> results;
     public int total_pages;
     public int total_results;
+
+    public void setResults(List<Movie> results) {
+        this.results = results;
+    }
 }
