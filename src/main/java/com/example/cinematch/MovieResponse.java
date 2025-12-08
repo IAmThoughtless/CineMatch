@@ -1,4 +1,4 @@
-package com.cinematch.cinematchbackend.model;
+package com.example.cinematch;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -15,8 +15,4 @@ public class MovieResponse {
     public int total_pages;
     @JsonProperty("total_results")
     public int total_results;
-
-    public void setResults(List<Movie> results) {
-        this.results = results;
-    }
 }
