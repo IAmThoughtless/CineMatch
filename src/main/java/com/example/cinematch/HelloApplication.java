@@ -88,6 +88,7 @@ public class HelloApplication extends Application {
 
     private void showHomeView() {
         root.setTop(createHeader());
+
         Label welcomeLabel = new Label("Welcome to CineMatch");
         welcomeLabel.setStyle("-fx-text-fill: white; -fx-font-size: 36px; -fx-font-weight: bold;");
 
@@ -109,10 +110,69 @@ public class HelloApplication extends Application {
         searchBox.setAlignment(Pos.CENTER);
         VBox.setMargin(searchBox, new Insets(30, 0, 0, 0));
 
-        VBox homeContent = new VBox(10, welcomeLabel, subTitle, searchBox);
-        homeContent.setAlignment(Pos.CENTER);
+        VBox whatsHotContainer = new VBox(20);
+        whatsHotContainer.setAlignment(Pos.TOP_CENTER);
+        VBox.setMargin(whatsHotContainer, new Insets(40, 0, 0, 0));
 
-        root.setCenter(homeContent);
+        VBox homeContent = new VBox(10, welcomeLabel, subTitle, searchBox, whatsHotContainer);
+        homeContent.setAlignment(Pos.TOP_CENTER);
+        homeContent.setPadding(new Insets(30, 20, 20, 20));
+
+        ScrollPane scrollPane = new ScrollPane(homeContent);
+        scrollPane.setFitToWidth(true);
+        scrollPane.setStyle("-fx-background: transparent; -fx-background-color: transparent;");
+        scrollPane.setPannable(true);
+
+        root.setCenter(scrollPane);
+
+        loadWhatsHotMovies(whatsHotContainer);
+    }
+
+    private void loadWhatsHotMovies(VBox targetContainer) {
+        Label loadingLabel = new Label("Loading What's Hot 🔥...");
+        loadingLabel.setStyle("-fx-text-fill: white; -fx-font-size: 18px;");
+        ProgressIndicator indicator = new ProgressIndicator();
+        VBox loadingBox = new VBox(10, loadingLabel, indicator);
+        loadingBox.setAlignment(Pos.CENTER);
+        targetContainer.getChildren().add(loadingBox); // Εμφάνιση loading
+
+        new Thread(() -> {
+            try {
+                HttpClient client = HttpClient.newHttpClient();
+                // Κλήση στο νέο endpoint
+                HttpRequest request = HttpRequest.newBuilder()
+                        .uri(URI.create("http://localhost:8080/api/movie/whats-hot"))
+                        .header("Content-Type", "application/json")
+                        .build();
+
+                HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+                Platform.runLater(() -> {
+                    targetContainer.getChildren().clear(); // Αφαίρεση loading
+                    Gson gson = new Gson();
+                    MovieResponse movies = gson.fromJson(response.body(), MovieResponse.class);
+
+                    if (response.statusCode() != 200 || movies == null || movies.results == null) {
+                        Label errorLabel = new Label("Could not fetch What's Hot movies. Check API.");
+                        errorLabel.setStyle("-fx-text-fill: red; -fx-font-size: 18px;");
+                        targetContainer.getChildren().add(errorLabel);
+                    }
+                    else {
+                        // Χρησιμοποιούμε τη νέα μέθοδο για εμφάνιση της λίστας
+                        VBox whatsHotSection = buildCompactMovieListUI("🔥 What's Hot 🔥", movies);
+                        targetContainer.getChildren().add(whatsHotSection);
+                    }
+                });
+
+            } catch (Exception ex) {
+                Platform.runLater(() -> {
+                    targetContainer.getChildren().clear();
+                    Label errorLabel = new Label("Connection Error loading What's Hot: " + ex.getMessage());
+                    errorLabel.setStyle("-fx-text-fill: red; -fx-font-size: 18px;");
+                    targetContainer.getChildren().add(errorLabel);
+                });
+            }
+        }).start();
     }
 
     private void showTop10View() {
@@ -333,6 +393,74 @@ public class HelloApplication extends Application {
         regForm.setStyle("-fx-background-color: rgba(0, 0, 0, 0.75); -fx-background-radius: 10;");
 
         root.setCenter(regForm);
+    }
+
+    private VBox buildCompactMovieListUI(String headerText, MovieResponse movieResponse) {
+
+        Label titleLabel = new Label(headerText);
+        titleLabel.setStyle("-fx-text-fill: #E50914; -fx-font-size: 24px; -fx-font-weight: bold;");
+        VBox.setMargin(titleLabel, new Insets(0, 0, 10, 50)); // Εμφάνιση τίτλου αριστερά
+
+        // 1. Δημιουργία HBox για τις κάρτες ταινιών (Οριζόντια διάταξη)
+        HBox movieRow = new HBox(20); // 20px κενό μεταξύ των καρτών
+        movieRow.setPadding(new Insets(0, 50, 0, 50)); // Οριζόντιο padding (αριστερά/δεξιά)
+
+        if (movieResponse == null || movieResponse.results == null || movieResponse.results.isEmpty()) {
+            Label noResultsLabel = new Label("No movies found for this section.");
+            noResultsLabel.setStyle("-fx-text-fill: white; -fx-font-size: 18px;");
+            // Αν δεν υπάρχουν αποτελέσματα, τοποθετούμε το μήνυμα σε VBox
+            return new VBox(20, titleLabel, noResultsLabel);
+        }
+
+        // 2. Δημιουργία και προσθήκη καρτών
+        int limit = Math.min(20, movieResponse.results.size()); // Αύξηση του ορίου σε 20 για οριζόντια σειρά
+
+        for (int i = 0; i < limit; i++) {
+            com.example.cinematch.Movie m = movieResponse.results.get(i);
+
+            // --- Δημιουργία μιας Κάρτας Ταινίας (Στοιχείο VBox) ---
+            // Εδώ η κάρτα γίνεται VBox για να περιέχει την αφίσα και τον τίτλο κάθετα
+
+            ImageView posterView = createPosterImageView(m.poster_path);
+            posterView.setFitWidth(150); // Μεγαλύτερη αφίσα για οριζόντια σειρά
+            posterView.setFitHeight(225);
+
+            Label movieTitle = new Label(m.title);
+            movieTitle.setStyle("-fx-text-fill: white; -fx-font-size: 14px; -fx-font-weight: bold;");
+            movieTitle.setWrapText(true);
+            movieTitle.setMaxWidth(150);
+            movieTitle.setMaxHeight(40); // Περιορισμός ύψους τίτλου
+
+            Label rating = new Label(String.format("⭐ %.1f", m.vote_average));
+            rating.setStyle("-fx-text-fill: #E50914; -fx-font-size: 12px;");
+
+            VBox movieCard = new VBox(5, posterView, movieTitle, rating);
+            movieCard.setPrefWidth(150);
+            movieCard.setAlignment(Pos.TOP_LEFT);
+            movieCard.setStyle("-fx-cursor: hand; -fx-background-color: transparent;");
+
+            // Hover effects και click action
+            movieCard.setOnMouseClicked(event -> showMovieDetails(m));
+            movieCard.setOnMouseEntered(e -> movieCard.setStyle("-fx-cursor: hand; -fx-background-color: rgba(255,255,255,0.1); -fx-background-radius: 5;"));
+            movieCard.setOnMouseExited(e -> movieCard.setStyle("-fx-cursor: hand; -fx-background-color: transparent;"));
+
+            movieRow.getChildren().add(movieCard);
+        }
+
+        // 3. Τύλιγμα της οριζόντιας σειράς σε ScrollPane
+        ScrollPane horizontalScrollPane = new ScrollPane(movieRow);
+        horizontalScrollPane.setFitToHeight(true);
+        horizontalScrollPane.setHbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED); // Να εμφανίζεται η μπάρα κύλισης
+        horizontalScrollPane.setVbarPolicy(ScrollPane.ScrollBarPolicy.NEVER); // Απενεργοποίηση κάθετης κύλισης
+        horizontalScrollPane.setPrefHeight(350); // Καθορισμός ύψους για τη σειρά (αφίσα + τίτλος + padding)
+        horizontalScrollPane.setStyle("-fx-background: transparent; -fx-background-color: transparent;");
+
+        // 4. Επιστροφή του τελικού κατακόρυφου layout (Τίτλος + ScrollPane)
+        VBox finalLayout = new VBox(10, titleLabel, horizontalScrollPane);
+        finalLayout.setAlignment(Pos.TOP_LEFT);
+        finalLayout.setMaxWidth(900);
+
+        return finalLayout;
     }
 
     private VBox buildMovieListUI(String headerText, MovieResponse movieResponse) {
