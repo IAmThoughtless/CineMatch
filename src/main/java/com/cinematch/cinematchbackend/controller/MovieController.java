@@ -15,6 +15,13 @@ public class MovieController {
     private MovieService movieService;
 
     @CrossOrigin(origins = "*")
+    @GetMapping("/whats-hot")
+    public ResponseEntity<MovieResponse> getWhatsHotMovies() {
+        MovieResponse ds = movieService.fetchWhatsHot();
+        return ResponseEntity.ok(ds);
+    }
+
+    @CrossOrigin(origins = "*")
     @GetMapping("/{id}")
     public ResponseEntity<Movie> getMovie(@PathVariable Long id) {
         Movie ds = movieService.getMovieDetails(id);

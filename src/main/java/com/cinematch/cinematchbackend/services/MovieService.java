@@ -112,4 +112,36 @@ public class MovieService {
             return null;
         }
     }
+
+    /**
+     * Fetches a list of movies currently playing (What's Hot).
+     * Uses TMDB's /movie/now_playing endpoint.
+     * @return MovieResponse object or null if the API call fails.
+     */
+    public MovieResponse fetchWhatsHot() {
+        // Χρησιμοποιούμε το endpoint "now_playing"
+        String url = "https://api.themoviedb.org/3/movie/now_playing?api_key=" + tmdbApiKey;
+
+        try {
+            HttpClient client = HttpClient.newHttpClient();
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(url))
+                    .build();
+
+            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+            if (response.statusCode() != 200) {
+                System.err.println("What's Hot API Request failed with status: " + response.statusCode());
+                return null;
+            }
+
+            Gson gson = new Gson();
+            return gson.fromJson(response.body(), MovieResponse.class);
+
+        } catch (Exception e) {
+            System.err.println("Error during What's Hot API call in MovieService: " + e.getMessage());
+            return null;
+        }
+    }
+}
 }
