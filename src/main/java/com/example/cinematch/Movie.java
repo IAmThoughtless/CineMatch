@@ -23,4 +23,9 @@ public class Movie {
     public double vote_average;
     @JsonProperty("vote_count")
     public int vote_count;
+    public ReviewsContainer reviews;
+
+    public static class ReviewsContainer {
+        public java.util.List<Review> results;
+    }
 }
