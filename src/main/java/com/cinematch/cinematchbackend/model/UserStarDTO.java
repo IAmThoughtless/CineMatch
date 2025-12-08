@@ -18,7 +18,6 @@ public class UserStarDTO {
         this.id = userStar.getId();
         this.tmdbId = userStar.getTmdbId();
         this.title = userStar.getTitle();
-        this.posterPath = userStar.getPosterPath();
         if (userStar.getUser() != null) {
             this.userId = userStar.getUser().getId();
         }
