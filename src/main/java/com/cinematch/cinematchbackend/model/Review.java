@@ -13,4 +13,13 @@ public class Review {
 
     @JsonProperty("id")
     private String id;
+
+    // Manually added getters to resolve compilation errors if Lombok is not fully configured
+    public String getAuthor() {
+        return author;
+    }
+
+    public String getContent() {
+        return content;
+    }
 }

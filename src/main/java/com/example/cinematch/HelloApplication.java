@@ -3,7 +3,10 @@ package com.example.cinematch;
 // Import your Backend Models
 // If your User class is in a different package, change the line above!
 
-import com.example.cinematch.MovieResponse;
+import com.cinematch.cinematchbackend.model.MovieResponse;
+import com.cinematch.cinematchbackend.model.Movie;
+import com.cinematch.cinematchbackend.model.Review;
+import com.cinematch.cinematchbackend.model.User;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import javafx.application.Application;
@@ -21,12 +24,10 @@ import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import javafx.stage.Stage;
 
-import java.lang.reflect.Type;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
-import java.util.List;
 
 public class HelloApplication extends Application {
 
@@ -141,8 +142,7 @@ public class HelloApplication extends Application {
         targetContainer.getChildren().add(loadingBox); // Εμφάνιση loading
 
         new Thread(() -> {
-            try {
-                HttpClient client = HttpClient.newHttpClient();
+            try (HttpClient client = HttpClient.newHttpClient()) {
                 // Κλήση στο νέο endpoint
                 HttpRequest request = HttpRequest.newBuilder()
                         .uri(URI.create("http://localhost:8080/api/movie/whats-hot"))
@@ -188,8 +188,7 @@ public class HelloApplication extends Application {
         root.setCenter(loadingBox);
 
         new Thread(() -> {
-            try {
-                HttpClient client = HttpClient.newHttpClient();
+            try (HttpClient client = HttpClient.newHttpClient()) {
                 HttpRequest request = HttpRequest.newBuilder()
                         .uri(URI.create("http://localhost:8080/api/movie/top-10"))
                         .header("Content-Type", "application/json")
@@ -252,13 +251,14 @@ public class HelloApplication extends Application {
             String password = passwordField.getText();
 
             new Thread(() -> {
-                try {
+                try (HttpClient client = HttpClient.newHttpClient()) {
                     // Assuming User constructor: User(username, password)
-                    User user = new User(username, password);
+                    User user = new User();
+                    user.setUsername(username);
+                    user.setPassword(password);
 
                     String jsonBody = new Gson().toJson(user);
 
-                    HttpClient client = HttpClient.newHttpClient();
                     HttpRequest request = HttpRequest.newBuilder()
                             .uri(URI.create("http://localhost:8080/api/auth/login"))
                             .header("Content-Type", "application/json")
@@ -272,7 +272,7 @@ public class HelloApplication extends Application {
                             messageLabel.setStyle("-fx-text-fill: lightgreen;");
                             messageLabel.setText("Login Successful!");
                             Gson gson = new Gson();
-                            com.cinematch.cinematchbackend.model.User loggedInUser = gson.fromJson(response.body(), com.cinematch.cinematchbackend.model.User.class);
+                            User loggedInUser = gson.fromJson(response.body(), User.class);
                             UserSession.getInstance().setUsername(loggedInUser.getUsername());
                             UserSession.getInstance().setUserId(loggedInUser.getId());
                             showHomeView();
@@ -355,11 +355,13 @@ public class HelloApplication extends Application {
             }
 
             new Thread(() -> {
-                try {
-                    User newUser = new User(email, username, password);
+                try (HttpClient client = HttpClient.newHttpClient()) {
+                    User newUser = new User();
+                    newUser.setEmail(email);
+                    newUser.setUsername(username);
+                    newUser.setPassword(password);
                     String jsonBody = new Gson().toJson(newUser);
 
-                    HttpClient client = HttpClient.newHttpClient();
                     HttpRequest request = HttpRequest.newBuilder()
                             .uri(URI.create("http://localhost:8080/api/auth/register"))
                             .header("Content-Type", "application/json")
@@ -423,22 +425,22 @@ public class HelloApplication extends Application {
         int limit = Math.min(20, movieResponse.results.size()); // Αύξηση του ορίου σε 20 για οριζόντια σειρά
 
         for (int i = 0; i < limit; i++) {
-            com.example.cinematch.Movie m = movieResponse.results.get(i);
+            Movie m = movieResponse.results.get(i);
 
             // --- Δημιουργία μιας Κάρτας Ταινίας (Στοιχείο VBox) ---
             // Εδώ η κάρτα γίνεται VBox για να περιέχει την αφίσα και τον τίτλο κάθετα
 
-            ImageView posterView = createPosterImageView(m.poster_path);
+            ImageView posterView = createPosterImageView(m.getPoster_path());
             posterView.setFitWidth(150); // Μεγαλύτερη αφίσα για οριζόντια σειρά
             posterView.setFitHeight(225);
 
-            Label movieTitle = new Label(m.title);
+            Label movieTitle = new Label(m.getTitle());
             movieTitle.setStyle("-fx-text-fill: white; -fx-font-size: 14px; -fx-font-weight: bold;");
             movieTitle.setWrapText(true);
             movieTitle.setMaxWidth(150);
             movieTitle.setMaxHeight(40); // Περιορισμός ύψους τίτλου
 
-            Label rating = new Label(String.format("⭐ %.1f", m.vote_average));
+            Label rating = new Label(String.format("⭐ %.1f", m.getVote_average()));
             rating.setStyle("-fx-text-fill: #E50914; -fx-font-size: 12px;");
 
             VBox movieCard = new VBox(5, posterView, movieTitle, rating);
@@ -488,18 +490,18 @@ public class HelloApplication extends Application {
             int limit = Math.min(20, movieResponse.results.size());
 
             for (int i = 0; i < limit; i++) {
-                com.example.cinematch.Movie m = movieResponse.results.get(i);
+                Movie m = movieResponse.results.get(i);
 
-                ImageView posterView = createPosterImageView(m.poster_path);
+                ImageView posterView = createPosterImageView(m.getPoster_path());
 
                 posterView.setFitWidth(80);
                 posterView.setFitHeight(120);
 
-                Label movieTitle = new Label(m.title);
+                Label movieTitle = new Label(m.getTitle());
                 movieTitle.setStyle("-fx-text-fill: white; -fx-font-size: 20px; -fx-font-weight: bold;");
 
-                String date = (m.release_date != null && !m.release_date.isEmpty()) ? m.release_date : "N/A";
-                Label movieDetails = new Label(String.format("⭐ %.1f | %s", m.vote_average, date));
+                String date = (m.getRelease_date() != null && !m.getRelease_date().isEmpty()) ? m.getRelease_date() : "N/A";
+                Label movieDetails = new Label(String.format("⭐ %.1f | %s", m.getVote_average(), date));
                 movieDetails.setStyle("-fx-text-fill: #cccccc; -fx-font-size: 14px;");
 
                 Label clickHint = new Label("Details ...");
@@ -586,8 +588,7 @@ public class HelloApplication extends Application {
         root.setCenter(loadingBox);
 
         new Thread(() -> {
-            try {
-                HttpClient client = HttpClient.newHttpClient();
+            try (HttpClient client = HttpClient.newHttpClient()) {
                 String jsonBody = new Gson().toJson(query);
 
                 HttpRequest request = HttpRequest.newBuilder()
@@ -741,8 +742,7 @@ public class HelloApplication extends Application {
 
 
         new Thread(() -> {
-            try {
-                HttpClient client = HttpClient.newHttpClient();
+            try (HttpClient client = HttpClient.newHttpClient()) {
                 HttpRequest request = HttpRequest.newBuilder()
                         .uri(URI.create("http://localhost:8080/api/quiz/batch"))
                         .header("Content-Type", "application/json")
@@ -753,7 +753,7 @@ public class HelloApplication extends Application {
                 Platform.runLater(() -> {
                     if (response.statusCode() == 200) {
                         Gson gson = new Gson();
-                        java.lang.reflect.Type listType = new com.google.gson.reflect.TypeToken<java.util.List<com.cinematch.cinematchbackend.model.QuizQuestion>>(){}.getType();
+                        java.lang.reflect.Type listType = new TypeToken<java.util.List<com.cinematch.cinematchbackend.model.QuizQuestion>>(){}.getType();
 
                         loadedQuestions = gson.fromJson(response.body(), listType);
 
@@ -891,7 +891,7 @@ public class HelloApplication extends Application {
         root.setCenter(layout);
     }
 
-    private void showMovieDetails(com.example.cinematch.Movie initialMovieData) {
+    private void showMovieDetails(Movie initialMovieData) {
         // Κουμπί επιστροφής
         Button backBtn = new Button("⬅ Back");
         backBtn.setStyle("-fx-background-color: transparent; -fx-text-fill: #E50914; -fx-font-size: 16px; -fx-font-weight: bold; -fx-cursor: hand;");
@@ -904,19 +904,19 @@ public class HelloApplication extends Application {
         });
 
         // --- Βασικά Στοιχεία //
-        ImageView posterView = createPosterImageView(initialMovieData.poster_path);
+        ImageView posterView = createPosterImageView(initialMovieData.getPoster_path());
         posterView.setFitWidth(300);
         posterView.setFitHeight(450);
 
-        Label titleLabel = new Label(initialMovieData.title);
+        Label titleLabel = new Label(initialMovieData.getTitle());
         titleLabel.setStyle("-fx-text-fill: white; -fx-font-size: 36px; -fx-font-weight: bold;");
         titleLabel.setWrapText(true);
 
-        String date = (initialMovieData.release_date != null && !initialMovieData.release_date.isEmpty()) ? initialMovieData.release_date : "N/A";
-        Label metaLabel = new Label("📅 " + date + "  |  ⭐ " + initialMovieData.vote_average + "/10 (" + initialMovieData.vote_count + " votes)");
+        String date = (initialMovieData.getRelease_date() != null && !initialMovieData.getRelease_date().isEmpty()) ? initialMovieData.getRelease_date() : "N/A";
+        Label metaLabel = new Label("📅 " + date + "  |  ⭐ " + initialMovieData.getVote_average() + "/10 (" + initialMovieData.getVote_count() + " votes)");
         metaLabel.setStyle("-fx-text-fill: #cccccc; -fx-font-size: 16px;");
 
-        String overviewText = (initialMovieData.overview != null && !initialMovieData.overview.isEmpty()) ? initialMovieData.overview : "Δεν υπάρχει διαθέσιμη περιγραφή.";
+        String overviewText = (initialMovieData.getOverview() != null && !initialMovieData.getOverview().isEmpty()) ? initialMovieData.getOverview() : "Δεν υπάρχει διαθέσιμη περιγραφή.";
         Label overviewLabel = new Label(overviewText);
         overviewLabel.setStyle("-fx-text-fill: white; -fx-font-size: 18px;");
         overviewLabel.setWrapText(true);
@@ -928,7 +928,7 @@ public class HelloApplication extends Application {
 
         if (UserSession.getInstance().isLoggedIn()) {
             new Thread(() -> {
-                boolean isStarred = isMovieStarred(initialMovieData.id);
+                boolean isStarred = isMovieStarred(initialMovieData.getId());
                 Platform.runLater(() -> {
                     starBtn.setDisable(false);
                     if (isStarred) {
@@ -982,10 +982,9 @@ public class HelloApplication extends Application {
 
 
         new Thread(() -> {
-            try {
-                HttpClient client = HttpClient.newHttpClient();
+            try (HttpClient client = HttpClient.newHttpClient()) {
                 HttpRequest request = HttpRequest.newBuilder()
-                        .uri(URI.create("http://localhost:8080/api/movie/" + initialMovieData.id))
+                        .uri(URI.create("http://localhost:8080/api/movie/" + initialMovieData.getId()))
                         .header("Content-Type", "application/json")
                         .GET()
                         .build();
@@ -995,16 +994,16 @@ public class HelloApplication extends Application {
                 Platform.runLater(() -> {
                     if (response.statusCode() == 200) {
                         Gson gson = new Gson();
-                        com.example.cinematch.Movie fullMovie = gson.fromJson(response.body(), com.example.cinematch.Movie.class);
+                        Movie fullMovie = gson.fromJson(response.body(), Movie.class);
 
 
                         reviewsContainer.getChildren().remove(loadingReviewsLabel);
 
-                        if (fullMovie.reviews != null && fullMovie.reviews.results != null && !fullMovie.reviews.results.isEmpty()) {
+                        if (fullMovie.getReviews() != null && fullMovie.getReviews().getResults() != null && !fullMovie.getReviews().getResults().isEmpty()) {
 
 
-                            for (com.example.cinematch.Review review : fullMovie.reviews.results) {
-                                Label authorLabel = new Label("👤 " + review.author);
+                            for (Review review : fullMovie.getReviews().getResults()) {
+                                Label authorLabel = new Label("👤 " + review.getAuthor());
                                 authorLabel.setStyle("-fx-text-fill: #cccccc; -fx-font-weight: bold; -fx-font-size: 14px;");
 
                                 Label contentLabel = new Label();
@@ -1018,9 +1017,9 @@ public class HelloApplication extends Application {
                                 // --- ΛΟΓΙΚΗ EXPAND  ---
                                 int MAX_LENGTH = 400;
 
-                                if (review.content.length() > MAX_LENGTH) {
-                                    String fullText = review.content;
-                                    String truncatedText = review.content.substring(0, MAX_LENGTH) + "...";
+                                if (review.getContent().length() > MAX_LENGTH) {
+                                    String fullText = review.getContent();
+                                    String truncatedText = review.getContent().substring(0, MAX_LENGTH) + "...";
 
 
                                     contentLabel.setText(truncatedText);
@@ -1045,7 +1044,7 @@ public class HelloApplication extends Application {
                                     reviewBox.getChildren().addAll(authorLabel, contentLabel, expandLink);
                                 } else {
 
-                                    contentLabel.setText(review.content);
+                                    contentLabel.setText(review.getContent());
                                     reviewBox.getChildren().addAll(authorLabel, contentLabel);
                                 }
 
@@ -1069,7 +1068,7 @@ public class HelloApplication extends Application {
     }
 
 
-    private void setupStarButton(Button btn, com.example.cinematch.Movie m) {
+    private void setupStarButton(Button btn, Movie m) {
         btn.setText("⭐ Star Movie");
         btn.setStyle("-fx-background-color: #E50914; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: 5;");
         makeButtonAnimated(btn, true);
@@ -1079,12 +1078,12 @@ public class HelloApplication extends Application {
         });
     }
 
-    private void setupUnstarButton(Button btn, com.example.cinematch.Movie m) {
+    private void setupUnstarButton(Button btn, Movie m) {
         btn.setText("Unstar");
         btn.setStyle("-fx-background-color: #555; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: 5;");
         makeButtonAnimated(btn, false);
         btn.setOnAction(ev -> {
-            unstarMovie(m.id);
+            unstarMovie(m.getId());
             setupStarButton(btn, m);
         });
     }
@@ -1103,8 +1102,7 @@ public class HelloApplication extends Application {
         root.setCenter(loadingBox);
 
         new Thread(() -> {
-            try {
-                HttpClient client = HttpClient.newHttpClient();
+            try (HttpClient client = HttpClient.newHttpClient()) {
                 HttpRequest request = HttpRequest.newBuilder()
                         .uri(URI.create("http://localhost:8080/api/v1/stars/" + UserSession.getInstance().getUserId()))
                         .header("Content-Type", "application/json")
@@ -1142,19 +1140,18 @@ public class HelloApplication extends Application {
         }).start();
     }
 
-    private void starMovie(com.example.cinematch.Movie m) {
+    private void starMovie(Movie m) {
         new Thread(() -> {
-            try {
+            try (HttpClient client = HttpClient.newHttpClient()) {
                 com.cinematch.cinematchbackend.model.UserStar star = new com.cinematch.cinematchbackend.model.UserStar();
-                star.setTmdbId(m.id);
-                star.setTitle(m.title);
-                com.cinematch.cinematchbackend.model.User user = new com.cinematch.cinematchbackend.model.User();
+                star.setTmdbId(m.getId());
+                star.setTitle(m.getTitle());
+                User user = new User();
                 user.setId(UserSession.getInstance().getUserId());
                 star.setUser(user);
 
                 String jsonBody = new Gson().toJson(star);
 
-                HttpClient client = HttpClient.newHttpClient();
                 HttpRequest request = HttpRequest.newBuilder()
                         .uri(URI.create("http://localhost:8080/api/v1/stars"))
                         .header("Content-Type", "application/json")
@@ -1171,8 +1168,7 @@ public class HelloApplication extends Application {
 
     private void unstarMovie(Long tmdbId) {
         new Thread(() -> {
-            try {
-                HttpClient client = HttpClient.newHttpClient();
+            try (HttpClient client = HttpClient.newHttpClient()) {
                 HttpRequest request = HttpRequest.newBuilder()
                         .uri(URI.create("http://localhost:8080/api/v1/stars/" + UserSession.getInstance().getUserId() + "/" + tmdbId))
                         .DELETE()
@@ -1187,8 +1183,7 @@ public class HelloApplication extends Application {
     }
 
     private boolean isMovieStarred(Long tmdbId) {
-        try {
-            HttpClient client = HttpClient.newHttpClient();
+        try (HttpClient client = HttpClient.newHttpClient()) {
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create("http://localhost:8080/api/v1/stars/" + UserSession.getInstance().getUserId() + "/" + tmdbId))
                     .build();

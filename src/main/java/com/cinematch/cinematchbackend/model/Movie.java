@@ -41,4 +41,5 @@ public class Movie {
         @JsonProperty("results")
         private List<Review> results;
     }
+
 }
