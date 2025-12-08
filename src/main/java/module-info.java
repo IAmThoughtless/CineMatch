@@ -26,6 +26,10 @@ module com.example.cinematch {
     requires spring.beans;
     requires spring.core;
     requires spring.web;
+    requires spring.security.config;
+    requires spring.security.web;
+    requires spring.aop;
+
 
     // --- DATABASE / JPA (NEW) ---
     requires spring.data.jpa;        // Fixes "package ... not visible"
@@ -48,14 +52,14 @@ module com.example.cinematch {
     // --- OPENS ---
 
     // 1. OPEN MAIN APPS
-    opens com.cinematch.cinematchbackend to spring.core, spring.beans, spring.context, spring.boot;
+    opens com.cinematch.cinematchbackend to spring.core, spring.beans, spring.context, spring.boot, spring.security.config;
     opens com.example.cinematch to javafx.fxml, spring.core, spring.boot, com.google.gson, com.fasterxml.jackson.databind;
 
     // 2. OPEN CONTROLLERS
     opens com.cinematch.cinematchbackend.controller to spring.beans, spring.web, spring.context, spring.core;
 
     // 3. OPEN SERVICES
-    opens com.cinematch.cinematchbackend.services to spring.beans, spring.context, spring.core;
+    opens com.cinematch.cinematchbackend.services to spring.beans, spring.context, spring.core, spring.aop;
 
     // 4. OPEN MODELS
     // Added 'org.hibernate.orm.core' so the DB engine can read your User class

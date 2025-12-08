@@ -7,6 +7,7 @@ public class UserSession {
 
     // 2. The data we want to remember
     private String username;
+    private Long userId;
 
     // Private constructor so nobody can make a new instance manually
     private UserSession() {}
@@ -28,9 +29,18 @@ public class UserSession {
         this.username = username;
     }
 
+    public Long getUserId() {
+        return userId;
+    }
+
+    public void setUserId(Long userId) {
+        this.userId = userId;
+    }
+
     // 5. Clear session (for Logout)
     public void cleanUserSession() {
         username = null;
+        userId = null;
     }
 
     public boolean isLoggedIn() {

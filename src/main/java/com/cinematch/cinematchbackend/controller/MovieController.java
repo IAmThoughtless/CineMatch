@@ -1,7 +1,7 @@
 package com.cinematch.cinematchbackend.controller;
 
+import com.cinematch.cinematchbackend.model.Movie;
 import com.cinematch.cinematchbackend.model.MovieResponse;
-import com.cinematch.cinematchbackend.repository.UserRepository;
 import com.cinematch.cinematchbackend.services.MovieService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -11,9 +11,6 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/movie")
 public class MovieController {
 
-    @Autowired
-    private UserRepository userRepository;
-    
     @Autowired
     private MovieService movieService;
 
@@ -26,8 +23,8 @@ public class MovieController {
 
     @CrossOrigin(origins = "*")
     @GetMapping("/{id}")
-    public ResponseEntity<MovieResponse> getMovie(@PathVariable String id) {
-        MovieResponse ds = movieService.getMovie(id);
+    public ResponseEntity<Movie> getMovie(@PathVariable Long id) {
+        Movie ds = movieService.getMovieDetails(id);
         return ResponseEntity.ok(ds);
     }
 
