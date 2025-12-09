@@ -51,4 +51,11 @@ public class MovieController {
         MovieResponse ds = movieService.fetchTopMovies();
         return ResponseEntity.ok(ds);
     }
+
+    @CrossOrigin(origins = "*")
+    @GetMapping("/genre/{genreId}")
+    public ResponseEntity<MovieResponse> getMoviesByGenre(@PathVariable int genreId) {
+        MovieResponse ds = movieService.fetchByGenre(genreId);
+        return ResponseEntity.ok(ds);
+    }
 }

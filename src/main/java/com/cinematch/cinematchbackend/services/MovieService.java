@@ -144,5 +144,29 @@ public class MovieService {
             return null;
         }
     }
-}
 
+    public MovieResponse fetchByGenre(int genreId) {
+        String url = "https://api.themoviedb.org/3/discover/movie?api_key=" + tmdbApiKey + "&with_genres=" + genreId;
+
+        try {
+            HttpClient client = HttpClient.newHttpClient();
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(url))
+                    .build();
+
+            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+            if (response.statusCode() != 200) {
+                System.err.println("Genre API Request failed with status: " + response.statusCode());
+                return null;
+            }
+
+            Gson gson = new Gson();
+            return gson.fromJson(response.body(), MovieResponse.class);
+
+        } catch (Exception e) {
+            System.err.println("Error during Genre API call in MovieService: " + e.getMessage());
+            return null;
+        }
+    }
+}
