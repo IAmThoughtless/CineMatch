@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Date;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -22,7 +23,7 @@ public class UserStarService {
     private MovieService movieService;
 
     public MovieResponse getAllUserStars(Long userId) {
-        List<UserStar> userStars = userStarRepository.findByUserId(userId);
+        List<UserStar> userStars = userStarRepository.findByUserIdOrderByCreatedAtDesc(userId);
 
         List<Movie> movies = userStars.stream()
                 .map(star -> movieService.getMovieDetails(star.getTmdbId()))
@@ -34,6 +35,7 @@ public class UserStarService {
     }
 
     public UserStarDTO addUserStar(UserStar userStar) {
+        userStar.setCreatedAt(new Date());
         UserStar savedStar = userStarRepository.save(userStar);
         return new UserStarDTO(savedStar);
     }
