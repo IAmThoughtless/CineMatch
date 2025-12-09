@@ -42,6 +42,7 @@ module com.example.cinematch {
     requires static lombok;
     requires com.fasterxml.jackson.annotation;
     requires com.fasterxml.jackson.databind;
+    //requires com.example.cinematch;
 
 
     // --- EXPORTS ---
