@@ -30,7 +30,6 @@ public class UserStar {
     @Column(name = "title", nullable = false)
     private String title;
 
-    @Column(name = "created_at", updatable = false, columnDefinition = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
-    @Temporal(TemporalType.TIMESTAMP)
+    @Column(name = "created_at", updatable = false)
     private Date createdAt;
 }

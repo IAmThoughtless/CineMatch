@@ -33,7 +33,6 @@ public class UserReview {
     @Column(name = "review_text", nullable = false)
     private String reviewText;
 
-    @Column(name = "created_at", updatable = false, columnDefinition = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
-    @Temporal(TemporalType.TIMESTAMP)
+    @Column(name = "created_at", updatable = false)
     private Date createdAt;
 }
