@@ -10,7 +10,7 @@
 <AnchorPane prefHeight="400.0" prefWidth="600.0"
             xmlns="http://javafx.com/javafx"
             xmlns:fx="http://javafx.com/fxml"
-            fx:controller="com.example.cinematch.MovieDetailsController"> <Label layoutX="10.0" layoutY="14.0" style="-fx-font-weight: bold;" text="Users Comments" />
+            fx:controller="com.cinematch.cinematchbackend.controller.CommentController"> <Label layoutX="10.0" layoutY="14.0" style="-fx-font-weight: bold;" text="Users Comments" />
 
 <TableView fx:id="commentsTable" AnchorPane.bottomAnchor="10.0" AnchorPane.leftAnchor="10.0" AnchorPane.rightAnchor="10.0" AnchorPane.topAnchor="50.0">
     <columns>
