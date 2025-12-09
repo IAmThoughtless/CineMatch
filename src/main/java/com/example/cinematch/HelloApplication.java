@@ -7,6 +7,8 @@ import com.cinematch.cinematchbackend.model.MovieResponse;
 import com.cinematch.cinematchbackend.model.Movie;
 import com.cinematch.cinematchbackend.model.Review;
 import com.cinematch.cinematchbackend.model.User;
+import com.cinematch.cinematchbackend.model.UserReview;
+import com.cinematch.cinematchbackend.model.MovieWithReviews;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import javafx.application.Application;
@@ -28,6 +30,8 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.util.Date;
+import java.util.Map;
 
 public class HelloApplication extends Application {
 
@@ -37,6 +41,13 @@ public class HelloApplication extends Application {
     private int score = 0;
     private final int TOTAL_QUESTIONS = 5;
     private java.util.List<com.cinematch.cinematchbackend.model.QuizQuestion> loadedQuestions;
+    private final Map<String, Integer> genreMap = Map.of(
+            "Action", 28,
+            "Comedy", 35,
+            "Drama", 18,
+            "Horror", 27,
+            "Sci-Fi", 878
+    );
 
     @Override
     public void start(Stage primaryStage) {
@@ -128,9 +139,85 @@ public class HelloApplication extends Application {
         scrollPane.setStyle("-fx-background: transparent; -fx-background-color: transparent;");
         scrollPane.setPannable(true);
 
-        root.setCenter(scrollPane);
+        BorderPane homeLayout = new BorderPane();
+        homeLayout.setCenter(scrollPane);
+
+        VBox genreSidebar = createGenreSidebar(whatsHotContainer);
+        homeLayout.setLeft(genreSidebar);
+
+        root.setCenter(homeLayout);
 
         loadWhatsHotMovies(whatsHotContainer);
+    }
+
+    private VBox createGenreSidebar(VBox targetContainer) {
+        VBox sidebar = new VBox(10);
+        sidebar.setPadding(new Insets(20));
+        sidebar.setStyle("-fx-background-color: rgba(0, 0, 0, 0.2);");
+
+        Label title = new Label("Genres");
+        title.setStyle("-fx-text-fill: #E50914; -fx-font-size: 20px; -fx-font-weight: bold;");
+        sidebar.getChildren().add(title);
+
+        Label allLabel = new Label("All");
+        allLabel.setStyle("-fx-text-fill: white; -fx-font-size: 16px; -fx-cursor: hand;");
+        allLabel.setOnMouseClicked(e -> loadWhatsHotMovies(targetContainer));
+        sidebar.getChildren().add(allLabel);
+
+        for (String genreName : genreMap.keySet()) {
+            Label genreLabel = new Label(genreName);
+            genreLabel.setStyle("-fx-text-fill: white; -fx-font-size: 16px; -fx-cursor: hand;");
+            genreLabel.setOnMouseClicked(e -> {
+                loadWhatsHotMoviesByGenre(targetContainer, genreName, genreMap.get(genreName));
+            });
+            sidebar.getChildren().add(genreLabel);
+        }
+
+        return sidebar;
+    }
+
+    private void loadWhatsHotMoviesByGenre(VBox targetContainer, String genreName, int genreId) {
+        Label loadingLabel = new Label("Loading " + genreName + " movies...");
+        loadingLabel.setStyle("-fx-text-fill: white; -fx-font-size: 18px;");
+        ProgressIndicator indicator = new ProgressIndicator();
+        VBox loadingBox = new VBox(10, loadingLabel, indicator);
+        loadingBox.setAlignment(Pos.CENTER);
+        targetContainer.getChildren().clear();
+        targetContainer.getChildren().add(loadingBox);
+
+        new Thread(() -> {
+            try (HttpClient client = HttpClient.newHttpClient()) {
+                HttpRequest request = HttpRequest.newBuilder()
+                        .uri(URI.create("http://localhost:8080/api/movie/genre/" + genreId))
+                        .header("Content-Type", "application/json")
+                        .build();
+
+                HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+                Platform.runLater(() -> {
+                    targetContainer.getChildren().clear();
+                    Gson gson = new Gson();
+                    MovieResponse movies = gson.fromJson(response.body(), MovieResponse.class);
+
+                    if (response.statusCode() != 200 || movies == null || movies.results == null) {
+                        Label errorLabel = new Label("Could not fetch movies for " + genreName);
+                        errorLabel.setStyle("-fx-text-fill: red; -fx-font-size: 18px;");
+                        targetContainer.getChildren().add(errorLabel);
+                    } else {
+                        VBox whatsHotSection = buildCompactMovieListUI("🔥 " + genreName + " 🔥", movies);
+                        targetContainer.getChildren().add(whatsHotSection);
+                    }
+                });
+
+            } catch (Exception ex) {
+                Platform.runLater(() -> {
+                    targetContainer.getChildren().clear();
+                    Label errorLabel = new Label("Connection Error: " + ex.getMessage());
+                    errorLabel.setStyle("-fx-text-fill: red; -fx-font-size: 18px;");
+                    targetContainer.getChildren().add(errorLabel);
+                });
+            }
+        }).start();
     }
 
     private void loadWhatsHotMovies(VBox targetContainer) {
@@ -960,10 +1047,62 @@ public class HelloApplication extends Application {
         Label reviewsHeader = new Label("User Reviews");
         reviewsHeader.setStyle("-fx-text-fill: #E50914; -fx-font-size: 24px; -fx-font-weight: bold;");
 
-        Label loadingReviewsLabel = new Label("Loading reviews from TMDb...");
+        VBox userReviewsBox = new VBox(10);
+        userReviewsBox.setAlignment(Pos.TOP_LEFT);
+
+        Label loadingReviewsLabel = new Label("Loading reviews...");
         loadingReviewsLabel.setStyle("-fx-text-fill: gray; -fx-font-style: italic;");
 
-        reviewsContainer.getChildren().addAll(reviewsHeader, loadingReviewsLabel);
+        reviewsContainer.getChildren().addAll(reviewsHeader, userReviewsBox, loadingReviewsLabel);
+
+        // --- Add Review Form ---
+        if (UserSession.getInstance().isLoggedIn()) {
+            TextArea reviewTextArea = new TextArea();
+            reviewTextArea.setPromptText("Write your review here...");
+            reviewTextArea.setWrapText(true);
+            reviewTextArea.setPrefHeight(100);
+            reviewTextArea.setStyle("-fx-control-inner-background:#333; -fx-prompt-text-fill: white; -fx-text-fill: white; -fx-background-radius: 5;");
+
+            Button submitReviewBtn = new Button("Submit Review");
+            submitReviewBtn.setStyle("-fx-background-color: #E50914; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: 5;");
+
+            new Thread(() -> {
+                UserReview userReview = getUserReview(initialMovieData.getId());
+                Platform.runLater(() -> {
+                    if (userReview != null) {
+                        reviewTextArea.setText(userReview.getReviewText());
+                    }
+                });
+            }).start();
+
+            submitReviewBtn.setOnAction(e -> {
+                String reviewText = reviewTextArea.getText();
+                if (reviewText != null && !reviewText.trim().isEmpty()) {
+                    submitReview(initialMovieData, reviewText);
+                }
+            });
+            VBox addReviewBox = new VBox(10, new Label("Add Your Review"), reviewTextArea, submitReviewBtn);
+            addReviewBox.setAlignment(Pos.TOP_LEFT);
+            reviewsContainer.getChildren().add(addReviewBox);
+        } else {
+            TextArea reviewTextArea = new TextArea();
+            reviewTextArea.setPromptText("Login or register to write a review");
+            reviewTextArea.setWrapText(true);
+            reviewTextArea.setPrefHeight(100);
+            reviewTextArea.setEditable(false); // Make it non-editable
+            reviewTextArea.setStyle("-fx-control-inner-background:#333; -fx-prompt-text-fill: white; -fx-background-radius: 5;");
+            reviewTextArea.setOnMouseClicked(e -> showLoginView()); // Redirect to login on click
+
+            Button submitReviewBtn = new Button("Submit Review");
+            submitReviewBtn.setStyle("-fx-background-color: #E50914; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: 5;");
+            submitReviewBtn.setOnAction(e -> showLoginView()); // Redirect to login on button click
+
+            VBox addReviewBox = new VBox(10, new Label("Add Your Review"), reviewTextArea, submitReviewBtn);
+            addReviewBox.setAlignment(Pos.TOP_LEFT);
+            reviewsContainer.getChildren().add(addReviewBox);
+        }
+        
+
 
         // ---  UI ---
         VBox mainContent = new VBox(20, topContent, reviewsContainer);
@@ -994,10 +1133,37 @@ public class HelloApplication extends Application {
                 Platform.runLater(() -> {
                     if (response.statusCode() == 200) {
                         Gson gson = new Gson();
-                        Movie fullMovie = gson.fromJson(response.body(), Movie.class);
-
+                        MovieWithReviews movieWithReviews = gson.fromJson(response.body(), MovieWithReviews.class);
+                        Movie fullMovie = movieWithReviews.getMovie();
+                        java.util.List<UserReview> userReviews = movieWithReviews.getUserReviews();
 
                         reviewsContainer.getChildren().remove(loadingReviewsLabel);
+
+                        // Display User Reviews
+                        userReviewsBox.getChildren().clear();
+                        if (userReviews != null && !userReviews.isEmpty()) {
+                            for (UserReview review : userReviews) {
+                                Label authorLabel = new Label("👤 " + review.getUser().getUsername());
+                                authorLabel.setStyle("-fx-text-fill: #cccccc; -fx-font-weight: bold; -fx-font-size: 14px;");
+
+                                Label contentLabel = new Label(review.getReviewText());
+                                contentLabel.setStyle("-fx-text-fill: white; -fx-font-size: 14px;");
+                                contentLabel.setWrapText(true);
+                                contentLabel.setMaxWidth(750);
+                                
+                                Label dateLabel = new Label("Created at: " + new java.text.SimpleDateFormat("dd/MM/yyyy HH:mm:ss").format(review.getCreatedAt()));
+                                dateLabel.setStyle("-fx-text-fill: #cccccc; -fx-font-size: 12px;");
+
+                                VBox reviewBox = new VBox(5, authorLabel, contentLabel, dateLabel);
+                                reviewBox.setStyle("-fx-background-color: rgba(255,255,255,0.05); -fx-padding: 15; -fx-background-radius: 10;");
+                                userReviewsBox.getChildren().add(reviewBox);
+                            }
+                        } else {
+                            Label noReviews = new Label("No user reviews yet.");
+                            noReviews.setStyle("-fx-text-fill: gray; -fx-font-size: 14px;");
+                            userReviewsBox.getChildren().add(noReviews);
+                        }
+
 
                         if (fullMovie.getReviews() != null && fullMovie.getReviews().getResults() != null && !fullMovie.getReviews().getResults().isEmpty()) {
 
@@ -1065,6 +1231,60 @@ public class HelloApplication extends Application {
                 Platform.runLater(() -> loadingReviewsLabel.setText("Error loading reviews."));
             }
         }).start();
+    }
+
+    private void submitReview(Movie movie, String reviewText) {
+        new Thread(() -> {
+            try (HttpClient client = HttpClient.newHttpClient()) {
+                UserReview review = new UserReview();
+                review.setTmdbId(movie.getId());
+                review.setReviewText(reviewText);
+                User user = new User();
+                user.setId(UserSession.getInstance().getUserId());
+                review.setUser(user);
+
+                String jsonBody = new Gson().toJson(review);
+
+                HttpRequest request = HttpRequest.newBuilder()
+                        .uri(URI.create("http://localhost:8080/api/reviews"))
+                        .header("Content-Type", "application/json")
+                        .POST(HttpRequest.BodyPublishers.ofString(jsonBody))
+                        .build();
+
+                HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+                if (response.statusCode() == 200) {
+                    Platform.runLater(() -> {
+                        // Refresh the movie details view to show the new review
+                        showMovieDetails(movie);
+                    });
+                }
+
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
+        }).start();
+    }
+
+    private UserReview getUserReview(Long tmdbId) {
+        if (!UserSession.getInstance().isLoggedIn()) {
+            return null;
+        }
+        try (HttpClient client = HttpClient.newHttpClient()) {
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create("http://localhost:8080/api/reviews/" + UserSession.getInstance().getUserId() + "/" + tmdbId))
+                    .build();
+
+            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+            if (response.statusCode() == 200 && response.body() != null && !response.body().isEmpty()) {
+                return new Gson().fromJson(response.body(), UserReview.class);
+            }
+
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
+        return null;
     }
 
 

@@ -8,7 +8,7 @@ import java.util.List;
 
 @Repository
 public interface UserStarRepository extends JpaRepository<UserStar, Long> {
-    List<UserStar> findByUserId(Long userId);
+    List<UserStar> findByUserIdOrderByCreatedAtDesc(Long userId);
     void deleteByUserIdAndTmdbId(Long userId, Long tmdbId);
     boolean existsByUserIdAndTmdbId(Long userId, Long tmdbId);
 }
