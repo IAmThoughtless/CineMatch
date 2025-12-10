@@ -3,7 +3,12 @@ package com.example.cinematch;
 // Import your Backend Models
 // If your User class is in a different package, change the line above!
 
-import com.example.cinematch.MovieResponse;
+import com.cinematch.cinematchbackend.model.MovieResponse;
+import com.cinematch.cinematchbackend.model.Movie;
+import com.cinematch.cinematchbackend.model.Review;
+import com.cinematch.cinematchbackend.model.User;
+import com.cinematch.cinematchbackend.model.UserReview;
+import com.cinematch.cinematchbackend.model.MovieWithReviews;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import javafx.application.Application;
@@ -21,21 +26,75 @@ import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import javafx.stage.Stage;
 
-import java.lang.reflect.Type;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.util.Date;
+import java.util.Map;
+
+
+import javafx.event.ActionEvent;
+import java.io.IOException;
+import java.util.Map;
 import java.util.List;
 
-public class HelloApplication extends Application {
 
+public class HelloApplication extends Application {
+    private VBox whatsHotContainer;
     private VBox lastMovieListView;
     private BorderPane root;
     private int currentQuestionIndex = 0;
     private int score = 0;
     private final int TOTAL_QUESTIONS = 5;
     private java.util.List<com.cinematch.cinematchbackend.model.QuizQuestion> loadedQuestions;
+    private final Map<String, Integer> genreMap = Map.of(
+            "Action", 28,
+            "Comedy", 35,
+            "Drama", 18,
+            "Horror", 27,
+            "Sci-Fi", 878
+    );
+    public MenuButton createGenreMenuButton() {
+        MenuButton genresMenuButton = new MenuButton("GENRES");
+        genresMenuButton.setPadding(new Insets(0));
+        genresMenuButton.setTextFill(Color.web("#E50914"));
+        genresMenuButton.setStyle(
+                        "-fx-font-size: 20px;" +
+                        "-fx-font-weight: bold;" +
+                        "-fx-background-color: transparent;" +
+                        "-fx-cursor: hand;" +
+                        "-fx-padding: 225 10 0 0;");
+
+
+        for (Map.Entry<String, Integer> entry : genreMap.entrySet()) {
+            String genreName = entry.getKey();
+
+            MenuItem item = new MenuItem(genreName);
+
+            item.setOnAction(this::handleGenreSelection);
+
+            genresMenuButton.getItems().add(item);
+        }
+        return genresMenuButton;
+    }
+
+    private void handleGenreSelection(ActionEvent event) {
+
+        MenuItem source = (MenuItem) event.getSource();
+        String selectedGenreName = source.getText();
+
+
+        int genreId = genreMap.get(selectedGenreName);
+
+        System.out.println("Επιλέχθηκε κατηγορία: " + selectedGenreName + ", ID: " + genreId);
+        if (whatsHotContainer != null) {
+            loadWhatsHotMoviesByGenre(whatsHotContainer, selectedGenreName, genreId);
+        }
+
+
+    }
+
 
     @Override
     public void start(Stage primaryStage) {
@@ -46,10 +105,13 @@ public class HelloApplication extends Application {
         logoLabel.setStyle("-fx-text-fill: #E50914;");
         logoLabel.setFont(Font.font("Verdana", FontWeight.BOLD, 24));
 
+        logoLabel.setPadding(new Insets(0));
+
         DropShadow shadow = new DropShadow();
         shadow.setOffsetY(3.0);
         shadow.setColor(Color.color(0, 0, 0, 0.5));
         logoLabel.setEffect(shadow);
+
 
         Button homeBtn = new Button("Home Page");
         homeBtn.setOnAction(event -> showHomeView());
@@ -74,6 +136,7 @@ public class HelloApplication extends Application {
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
         HBox header = new HBox(15);
+
         header.getChildren().addAll(logoLabel, spacer, homeBtn, top10Btn, quizBtn, loginBtn);
         header.setPadding(new Insets(15, 25, 15, 25));
         header.setAlignment(Pos.CENTER_LEFT);
@@ -82,7 +145,7 @@ public class HelloApplication extends Application {
         root.setTop(header);
         root.setStyle("-fx-background-color: linear-gradient(to bottom right, #141E30, #243B55);");
 
-        Scene scene = new Scene(root, 900, 650);
+        Scene scene = new Scene(root, 1100, 750);
         primaryStage.setTitle("CineMatch App");
         primaryStage.setScene(scene);
         primaryStage.show();
@@ -91,7 +154,7 @@ public class HelloApplication extends Application {
     }
 
     private void showHomeView() {
-        root.setTop(createHeader());
+
 
         Label welcomeLabel = new Label("Welcome to CineMatch");
         welcomeLabel.setStyle("-fx-text-fill: white; -fx-font-size: 36px; -fx-font-weight: bold;");
@@ -114,7 +177,8 @@ public class HelloApplication extends Application {
         searchBox.setAlignment(Pos.CENTER);
         VBox.setMargin(searchBox, new Insets(30, 0, 0, 0));
 
-        VBox whatsHotContainer = new VBox(20);
+
+        whatsHotContainer = new VBox(20);
         whatsHotContainer.setAlignment(Pos.TOP_CENTER);
         VBox.setMargin(whatsHotContainer, new Insets(40, 0, 0, 0));
 
@@ -127,9 +191,63 @@ public class HelloApplication extends Application {
         scrollPane.setStyle("-fx-background: transparent; -fx-background-color: transparent;");
         scrollPane.setPannable(true);
 
-        root.setCenter(scrollPane);
+        BorderPane homeLayout = new BorderPane();
+        homeLayout.setCenter(scrollPane);
+
+
+        MenuButton genresMenuButton = createGenreMenuButton();
+        VBox sidebarContainer = new VBox(10);
+        sidebarContainer.setPadding(new Insets(20, 2, 20, 2));
+        sidebarContainer.setStyle("-fx-background-color: rgba(0, 0, 0, 0.2);");
+        sidebarContainer.getChildren().addAll(genresMenuButton);
+        homeLayout.setLeft(sidebarContainer);
+        root.setCenter(homeLayout);
 
         loadWhatsHotMovies(whatsHotContainer);
+    }
+
+    private void loadWhatsHotMoviesByGenre(VBox targetContainer, String genreName, int genreId) {
+        Label loadingLabel = new Label("Loading " + genreName + " movies...");
+        loadingLabel.setStyle("-fx-text-fill: white; -fx-font-size: 18px;");
+        ProgressIndicator indicator = new ProgressIndicator();
+        VBox loadingBox = new VBox(10, loadingLabel, indicator);
+        loadingBox.setAlignment(Pos.CENTER);
+        targetContainer.getChildren().clear();
+        targetContainer.getChildren().add(loadingBox);
+
+        new Thread(() -> {
+            try (HttpClient client = HttpClient.newHttpClient()) {
+                HttpRequest request = HttpRequest.newBuilder()
+                        .uri(URI.create("http://localhost:8080/api/movie/genre/" + genreId))
+                        .header("Content-Type", "application/json")
+                        .build();
+
+                HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+                Platform.runLater(() -> {
+                    targetContainer.getChildren().clear();
+                    Gson gson = new Gson();
+                    MovieResponse movies = gson.fromJson(response.body(), MovieResponse.class);
+
+                    if (response.statusCode() != 200 || movies == null || movies.results == null) {
+                        Label errorLabel = new Label("Could not fetch movies for " + genreName);
+                        errorLabel.setStyle("-fx-text-fill: red; -fx-font-size: 18px;");
+                        targetContainer.getChildren().add(errorLabel);
+                    } else {
+                        VBox whatsHotSection = buildCompactMovieListUI("🔥 " + genreName + " 🔥", movies);
+                        targetContainer.getChildren().add(whatsHotSection);
+                    }
+                });
+
+            } catch (Exception ex) {
+                Platform.runLater(() -> {
+                    targetContainer.getChildren().clear();
+                    Label errorLabel = new Label("Connection Error: " + ex.getMessage());
+                    errorLabel.setStyle("-fx-text-fill: red; -fx-font-size: 18px;");
+                    targetContainer.getChildren().add(errorLabel);
+                });
+            }
+        }).start();
     }
 
     private void loadWhatsHotMovies(VBox targetContainer) {
@@ -141,8 +259,7 @@ public class HelloApplication extends Application {
         targetContainer.getChildren().add(loadingBox); // Εμφάνιση loading
 
         new Thread(() -> {
-            try {
-                HttpClient client = HttpClient.newHttpClient();
+            try (HttpClient client = HttpClient.newHttpClient()) {
                 // Κλήση στο νέο endpoint
                 HttpRequest request = HttpRequest.newBuilder()
                         .uri(URI.create("http://localhost:8080/api/movie/whats-hot"))
@@ -188,8 +305,7 @@ public class HelloApplication extends Application {
         root.setCenter(loadingBox);
 
         new Thread(() -> {
-            try {
-                HttpClient client = HttpClient.newHttpClient();
+            try (HttpClient client = HttpClient.newHttpClient()) {
                 HttpRequest request = HttpRequest.newBuilder()
                         .uri(URI.create("http://localhost:8080/api/movie/top-10"))
                         .header("Content-Type", "application/json")
@@ -252,13 +368,14 @@ public class HelloApplication extends Application {
             String password = passwordField.getText();
 
             new Thread(() -> {
-                try {
+                try (HttpClient client = HttpClient.newHttpClient()) {
                     // Assuming User constructor: User(username, password)
-                    User user = new User(username, password);
+                    User user = new User();
+                    user.setUsername(username);
+                    user.setPassword(password);
 
                     String jsonBody = new Gson().toJson(user);
 
-                    HttpClient client = HttpClient.newHttpClient();
                     HttpRequest request = HttpRequest.newBuilder()
                             .uri(URI.create("http://localhost:8080/api/auth/login"))
                             .header("Content-Type", "application/json")
@@ -272,7 +389,7 @@ public class HelloApplication extends Application {
                             messageLabel.setStyle("-fx-text-fill: lightgreen;");
                             messageLabel.setText("Login Successful!");
                             Gson gson = new Gson();
-                            com.cinematch.cinematchbackend.model.User loggedInUser = gson.fromJson(response.body(), com.cinematch.cinematchbackend.model.User.class);
+                            User loggedInUser = gson.fromJson(response.body(), User.class);
                             UserSession.getInstance().setUsername(loggedInUser.getUsername());
                             UserSession.getInstance().setUserId(loggedInUser.getId());
                             showHomeView();
@@ -355,11 +472,13 @@ public class HelloApplication extends Application {
             }
 
             new Thread(() -> {
-                try {
-                    User newUser = new User(email, username, password);
+                try (HttpClient client = HttpClient.newHttpClient()) {
+                    User newUser = new User();
+                    newUser.setEmail(email);
+                    newUser.setUsername(username);
+                    newUser.setPassword(password);
                     String jsonBody = new Gson().toJson(newUser);
 
-                    HttpClient client = HttpClient.newHttpClient();
                     HttpRequest request = HttpRequest.newBuilder()
                             .uri(URI.create("http://localhost:8080/api/auth/register"))
                             .header("Content-Type", "application/json")
@@ -423,22 +542,22 @@ public class HelloApplication extends Application {
         int limit = Math.min(20, movieResponse.results.size()); // Αύξηση του ορίου σε 20 για οριζόντια σειρά
 
         for (int i = 0; i < limit; i++) {
-            com.example.cinematch.Movie m = movieResponse.results.get(i);
+            Movie m = movieResponse.results.get(i);
 
             // --- Δημιουργία μιας Κάρτας Ταινίας (Στοιχείο VBox) ---
             // Εδώ η κάρτα γίνεται VBox για να περιέχει την αφίσα και τον τίτλο κάθετα
 
-            ImageView posterView = createPosterImageView(m.poster_path);
+            ImageView posterView = createPosterImageView(m.getPoster_path());
             posterView.setFitWidth(150); // Μεγαλύτερη αφίσα για οριζόντια σειρά
             posterView.setFitHeight(225);
 
-            Label movieTitle = new Label(m.title);
+            Label movieTitle = new Label(m.getTitle());
             movieTitle.setStyle("-fx-text-fill: white; -fx-font-size: 14px; -fx-font-weight: bold;");
             movieTitle.setWrapText(true);
             movieTitle.setMaxWidth(150);
             movieTitle.setMaxHeight(40); // Περιορισμός ύψους τίτλου
 
-            Label rating = new Label(String.format("⭐ %.1f", m.vote_average));
+            Label rating = new Label(String.format("⭐ %.1f", m.getVote_average()));
             rating.setStyle("-fx-text-fill: #E50914; -fx-font-size: 12px;");
 
             VBox movieCard = new VBox(5, posterView, movieTitle, rating);
@@ -488,18 +607,18 @@ public class HelloApplication extends Application {
             int limit = Math.min(20, movieResponse.results.size());
 
             for (int i = 0; i < limit; i++) {
-                com.example.cinematch.Movie m = movieResponse.results.get(i);
+                Movie m = movieResponse.results.get(i);
 
-                ImageView posterView = createPosterImageView(m.poster_path);
+                ImageView posterView = createPosterImageView(m.getPoster_path());
 
                 posterView.setFitWidth(80);
                 posterView.setFitHeight(120);
 
-                Label movieTitle = new Label(m.title);
+                Label movieTitle = new Label(m.getTitle());
                 movieTitle.setStyle("-fx-text-fill: white; -fx-font-size: 20px; -fx-font-weight: bold;");
 
-                String date = (m.release_date != null && !m.release_date.isEmpty()) ? m.release_date : "N/A";
-                Label movieDetails = new Label(String.format("⭐ %.1f | %s", m.vote_average, date));
+                String date = (m.getRelease_date() != null && !m.getRelease_date().isEmpty()) ? m.getRelease_date() : "N/A";
+                Label movieDetails = new Label(String.format("⭐ %.1f | %s", m.getVote_average(), date));
                 movieDetails.setStyle("-fx-text-fill: #cccccc; -fx-font-size: 14px;");
 
                 Label clickHint = new Label("Details ...");
@@ -586,8 +705,7 @@ public class HelloApplication extends Application {
         root.setCenter(loadingBox);
 
         new Thread(() -> {
-            try {
-                HttpClient client = HttpClient.newHttpClient();
+            try (HttpClient client = HttpClient.newHttpClient()) {
                 String jsonBody = new Gson().toJson(query);
 
                 HttpRequest request = HttpRequest.newBuilder()
@@ -741,8 +859,7 @@ public class HelloApplication extends Application {
 
 
         new Thread(() -> {
-            try {
-                HttpClient client = HttpClient.newHttpClient();
+            try (HttpClient client = HttpClient.newHttpClient()) {
                 HttpRequest request = HttpRequest.newBuilder()
                         .uri(URI.create("http://localhost:8080/api/quiz/batch"))
                         .header("Content-Type", "application/json")
@@ -753,7 +870,7 @@ public class HelloApplication extends Application {
                 Platform.runLater(() -> {
                     if (response.statusCode() == 200) {
                         Gson gson = new Gson();
-                        java.lang.reflect.Type listType = new com.google.gson.reflect.TypeToken<java.util.List<com.cinematch.cinematchbackend.model.QuizQuestion>>(){}.getType();
+                        java.lang.reflect.Type listType = new TypeToken<java.util.List<com.cinematch.cinematchbackend.model.QuizQuestion>>(){}.getType();
 
                         loadedQuestions = gson.fromJson(response.body(), listType);
 
@@ -891,7 +1008,8 @@ public class HelloApplication extends Application {
         root.setCenter(layout);
     }
 
-    private void showMovieDetails(com.example.cinematch.Movie m) {
+    private void showMovieDetails(Movie initialMovieData) {
+        // Κουμπί επιστροφής
         Button backBtn = new Button("⬅ Back");
         backBtn.setStyle("-fx-background-color: transparent; -fx-text-fill: #E50914; -fx-font-size: 16px; -fx-font-weight: bold; -fx-cursor: hand;");
         backBtn.setOnAction(e -> {
@@ -902,72 +1020,322 @@ public class HelloApplication extends Application {
             }
         });
 
-        ImageView posterView = createPosterImageView(m.poster_path);
+        // --- Βασικά Στοιχεία //
+        ImageView posterView = createPosterImageView(initialMovieData.getPoster_path());
         posterView.setFitWidth(300);
         posterView.setFitHeight(450);
 
-        Label titleLabel = new Label(m.title);
+        Label titleLabel = new Label(initialMovieData.getTitle());
         titleLabel.setStyle("-fx-text-fill: white; -fx-font-size: 36px; -fx-font-weight: bold;");
         titleLabel.setWrapText(true);
 
-        String date = (m.release_date != null && !m.release_date.isEmpty()) ? m.release_date : "N/A";
-        Label metaLabel = new Label("📅 " + date + "  |  ⭐ " + m.vote_average + "/10 (" + m.vote_count + " votes)");
+        String date = (initialMovieData.getRelease_date() != null && !initialMovieData.getRelease_date().isEmpty()) ? initialMovieData.getRelease_date() : "N/A";
+        Label metaLabel = new Label("📅 " + date + "  |  ⭐ " + initialMovieData.getVote_average() + "/10 (" + initialMovieData.getVote_count() + " votes)");
         metaLabel.setStyle("-fx-text-fill: #cccccc; -fx-font-size: 16px;");
 
-        String overviewText = (m.overview != null && !m.overview.isEmpty()) ? m.overview : "Δεν υπάρχει διαθέσιμη περιγραφή.";
+        String overviewText = (initialMovieData.getOverview() != null && !initialMovieData.getOverview().isEmpty()) ? initialMovieData.getOverview() : "Δεν υπάρχει διαθέσιμη περιγραφή.";
         Label overviewLabel = new Label(overviewText);
         overviewLabel.setStyle("-fx-text-fill: white; -fx-font-size: 18px;");
         overviewLabel.setWrapText(true);
         overviewLabel.setMaxWidth(600);
 
-        VBox infoBox = new VBox(20, titleLabel, metaLabel, overviewLabel);
-        infoBox.setAlignment(Pos.CENTER_LEFT);
-
-        Button starBtn = new Button();
-        infoBox.getChildren().add(starBtn);
+        // --- Κουμπί Star ---
+        Button starBtn = new Button("Loading...");
+        starBtn.setDisable(true);
 
         if (UserSession.getInstance().isLoggedIn()) {
             new Thread(() -> {
-                boolean isStarred = isMovieStarred(m.id);
+                boolean isStarred = isMovieStarred(initialMovieData.getId());
                 Platform.runLater(() -> {
+                    starBtn.setDisable(false);
                     if (isStarred) {
-                        starBtn.setText("Unstar");
-                        starBtn.setStyle("-fx-background-color: #E50914; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: 5;");
-                        makeButtonAnimated(starBtn, true);
-                        starBtn.setOnAction(e -> {
-                            unstarMovie(m.id);
-                            starBtn.setText("Star");
-                        });
+                        setupUnstarButton(starBtn, initialMovieData);
                     } else {
-                        starBtn.setText("⭐ Star Movie");
-                        starBtn.setStyle("-fx-background-color: #E50914; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: 5;");
-                        makeButtonAnimated(starBtn, true);
-                        starBtn.setOnAction(e -> {
-                            starMovie(m);
-                            starBtn.setText("Unstar");
-                        });
+                        setupStarButton(starBtn, initialMovieData);
                     }
                 });
             }).start();
         } else {
             starBtn.setText("⭐ Star Movie");
             starBtn.setStyle("-fx-background-color: #E50914; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: 5;");
-            makeButtonAnimated(starBtn, true);
-            starBtn.setOnAction(e -> showLoginView());
+            starBtn.setDisable(false);
+            starBtn.setOnAction(ev -> showLoginView());
         }
 
-        HBox content = new HBox(40, posterView, infoBox);
-        content.setAlignment(Pos.CENTER);
-        content.setPadding(new Insets(40));
+        VBox infoBox = new VBox(20, titleLabel, metaLabel, overviewLabel, starBtn);
+        infoBox.setAlignment(Pos.CENTER_LEFT);
 
-        ScrollPane scrollPane = new ScrollPane(content);
+        HBox topContent = new HBox(40, posterView, infoBox);
+        topContent.setAlignment(Pos.CENTER);
+        topContent.setPadding(new Insets(0, 0, 40, 0));
+
+        // --- ΤΜΗΜΑ ΚΡΙΤΙΚΩΝ (REVIEWS SECTION) ---
+        VBox reviewsContainer = new VBox(15);
+        reviewsContainer.setAlignment(Pos.TOP_LEFT);
+        reviewsContainer.setMaxWidth(800);
+
+        Label reviewsHeader = new Label("User Reviews");
+        reviewsHeader.setStyle("-fx-text-fill: #E50914; -fx-font-size: 24px; -fx-font-weight: bold;");
+
+        VBox userReviewsBox = new VBox(10);
+        userReviewsBox.setAlignment(Pos.TOP_LEFT);
+
+        Label loadingReviewsLabel = new Label("Loading reviews...");
+        loadingReviewsLabel.setStyle("-fx-text-fill: gray; -fx-font-style: italic;");
+
+        reviewsContainer.getChildren().addAll(reviewsHeader, userReviewsBox, loadingReviewsLabel);
+
+        // --- Add Review Form ---
+        if (UserSession.getInstance().isLoggedIn()) {
+            TextArea reviewTextArea = new TextArea();
+            reviewTextArea.setPromptText("Write your review here...");
+            reviewTextArea.setWrapText(true);
+            reviewTextArea.setPrefHeight(100);
+            reviewTextArea.setStyle("-fx-control-inner-background:#333; -fx-prompt-text-fill: white; -fx-text-fill: white; -fx-background-radius: 5;");
+
+            Button submitReviewBtn = new Button("Submit Review");
+            submitReviewBtn.setStyle("-fx-background-color: #E50914; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: 5;");
+
+            new Thread(() -> {
+                UserReview userReview = getUserReview(initialMovieData.getId());
+                Platform.runLater(() -> {
+                    if (userReview != null) {
+                        reviewTextArea.setText(userReview.getReviewText());
+                    }
+                });
+            }).start();
+
+            submitReviewBtn.setOnAction(e -> {
+                String reviewText = reviewTextArea.getText();
+                if (reviewText != null && !reviewText.trim().isEmpty()) {
+                    submitReview(initialMovieData, reviewText);
+                }
+            });
+            VBox addReviewBox = new VBox(10, new Label("Add Your Review"), reviewTextArea, submitReviewBtn);
+            addReviewBox.setAlignment(Pos.TOP_LEFT);
+            reviewsContainer.getChildren().add(addReviewBox);
+        } else {
+            TextArea reviewTextArea = new TextArea();
+            reviewTextArea.setPromptText("Login or register to write a review");
+            reviewTextArea.setWrapText(true);
+            reviewTextArea.setPrefHeight(100);
+            reviewTextArea.setEditable(false); // Make it non-editable
+            reviewTextArea.setStyle("-fx-control-inner-background:#333; -fx-prompt-text-fill: white; -fx-background-radius: 5;");
+            reviewTextArea.setOnMouseClicked(e -> showLoginView()); // Redirect to login on click
+
+            Button submitReviewBtn = new Button("Submit Review");
+            submitReviewBtn.setStyle("-fx-background-color: #E50914; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: 5;");
+            submitReviewBtn.setOnAction(e -> showLoginView()); // Redirect to login on button click
+
+            VBox addReviewBox = new VBox(10, new Label("Add Your Review"), reviewTextArea, submitReviewBtn);
+            addReviewBox.setAlignment(Pos.TOP_LEFT);
+            reviewsContainer.getChildren().add(addReviewBox);
+        }
+        
+
+
+        // ---  UI ---
+        VBox mainContent = new VBox(20, topContent, reviewsContainer);
+        mainContent.setAlignment(Pos.TOP_CENTER);
+        mainContent.setPadding(new Insets(40));
+
+        ScrollPane scrollPane = new ScrollPane(mainContent);
         scrollPane.setFitToWidth(true);
         scrollPane.setStyle("-fx-background: transparent; -fx-background-color: transparent;");
+        scrollPane.setPannable(true);
 
         VBox finalLayout = new VBox(20, backBtn, scrollPane);
         finalLayout.setPadding(new Insets(20));
 
         root.setCenter(finalLayout);
+
+
+        new Thread(() -> {
+            try (HttpClient client = HttpClient.newHttpClient()) {
+                HttpRequest request = HttpRequest.newBuilder()
+                        .uri(URI.create("http://localhost:8080/api/movie/" + initialMovieData.getId()))
+                        .header("Content-Type", "application/json")
+                        .GET()
+                        .build();
+
+                HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+                Platform.runLater(() -> {
+                    if (response.statusCode() == 200) {
+                        Gson gson = new Gson();
+                        MovieWithReviews movieWithReviews = gson.fromJson(response.body(), MovieWithReviews.class);
+                        Movie fullMovie = movieWithReviews.getMovie();
+                        java.util.List<UserReview> userReviews = movieWithReviews.getUserReviews();
+
+                        reviewsContainer.getChildren().remove(loadingReviewsLabel);
+
+                        // Display User Reviews
+                        userReviewsBox.getChildren().clear();
+                        if (userReviews != null && !userReviews.isEmpty()) {
+                            for (UserReview review : userReviews) {
+                                Label authorLabel = new Label("👤 " + review.getUser().getUsername());
+                                authorLabel.setStyle("-fx-text-fill: #cccccc; -fx-font-weight: bold; -fx-font-size: 14px;");
+
+                                Label contentLabel = new Label(review.getReviewText());
+                                contentLabel.setStyle("-fx-text-fill: white; -fx-font-size: 14px;");
+                                contentLabel.setWrapText(true);
+                                contentLabel.setMaxWidth(750);
+                                
+                                Label dateLabel = new Label("Created at: " + new java.text.SimpleDateFormat("dd/MM/yyyy HH:mm:ss").format(review.getCreatedAt()));
+                                dateLabel.setStyle("-fx-text-fill: #cccccc; -fx-font-size: 12px;");
+
+                                VBox reviewBox = new VBox(5, authorLabel, contentLabel, dateLabel);
+                                reviewBox.setStyle("-fx-background-color: rgba(255,255,255,0.05); -fx-padding: 15; -fx-background-radius: 10;");
+                                userReviewsBox.getChildren().add(reviewBox);
+                            }
+                        } else {
+                            Label noReviews = new Label("No user reviews yet.");
+                            noReviews.setStyle("-fx-text-fill: gray; -fx-font-size: 14px;");
+                            userReviewsBox.getChildren().add(noReviews);
+                        }
+
+
+                        if (fullMovie.getReviews() != null && fullMovie.getReviews().getResults() != null && !fullMovie.getReviews().getResults().isEmpty()) {
+
+
+                            for (Review review : fullMovie.getReviews().getResults()) {
+                                Label authorLabel = new Label("👤 " + review.getAuthor());
+                                authorLabel.setStyle("-fx-text-fill: #cccccc; -fx-font-weight: bold; -fx-font-size: 14px;");
+
+                                Label contentLabel = new Label();
+                                contentLabel.setStyle("-fx-text-fill: white; -fx-font-size: 14px;");
+                                contentLabel.setWrapText(true);
+                                contentLabel.setMaxWidth(750); // Σιγουρέψου ότι αυτό χωράει στο UI σου
+
+                                VBox reviewBox = new VBox(5);
+                                reviewBox.setStyle("-fx-background-color: rgba(255,255,255,0.05); -fx-padding: 15; -fx-background-radius: 10;");
+
+                                // --- ΛΟΓΙΚΗ EXPAND  ---
+                                int MAX_LENGTH = 400;
+
+                                if (review.getContent().length() > MAX_LENGTH) {
+                                    String fullText = review.getContent();
+                                    String truncatedText = review.getContent().substring(0, MAX_LENGTH) + "...";
+
+
+                                    contentLabel.setText(truncatedText);
+
+
+                                    javafx.scene.control.Hyperlink expandLink = new javafx.scene.control.Hyperlink("Read More ⬇");
+                                    expandLink.setStyle("-fx-text-fill: #E50914; -fx-border-color: transparent; -fx-font-weight: bold;");
+
+
+                                    expandLink.setOnAction(e -> {
+                                        if (expandLink.getText().equals("Read More ⬇")) {
+
+                                            contentLabel.setText(fullText);
+                                            expandLink.setText("Read Less ⬆");
+                                        } else {
+
+                                            contentLabel.setText(truncatedText);
+                                            expandLink.setText("Read More ⬇");
+                                        }
+                                    });
+
+                                    reviewBox.getChildren().addAll(authorLabel, contentLabel, expandLink);
+                                } else {
+
+                                    contentLabel.setText(review.getContent());
+                                    reviewBox.getChildren().addAll(authorLabel, contentLabel);
+                                }
+
+                                reviewsContainer.getChildren().add(reviewBox);
+                            }
+
+                        } else {
+                            Label noReviews = new Label("No reviews found for this movie.");
+                            noReviews.setStyle("-fx-text-fill: gray; -fx-font-size: 14px;");
+                            reviewsContainer.getChildren().add(noReviews);
+                        }
+                    } else {
+                        loadingReviewsLabel.setText("Failed to load reviews.");
+                    }
+                });
+
+            } catch (Exception ex) {
+                Platform.runLater(() -> loadingReviewsLabel.setText("Error loading reviews."));
+            }
+        }).start();
+    }
+
+    private void submitReview(Movie movie, String reviewText) {
+        new Thread(() -> {
+            try (HttpClient client = HttpClient.newHttpClient()) {
+                UserReview review = new UserReview();
+                review.setTmdbId(movie.getId());
+                review.setReviewText(reviewText);
+                User user = new User();
+                user.setId(UserSession.getInstance().getUserId());
+                review.setUser(user);
+
+                String jsonBody = new Gson().toJson(review);
+
+                HttpRequest request = HttpRequest.newBuilder()
+                        .uri(URI.create("http://localhost:8080/api/reviews"))
+                        .header("Content-Type", "application/json")
+                        .POST(HttpRequest.BodyPublishers.ofString(jsonBody))
+                        .build();
+
+                HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+                if (response.statusCode() == 200) {
+                    Platform.runLater(() -> {
+                        // Refresh the movie details view to show the new review
+                        showMovieDetails(movie);
+                    });
+                }
+
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
+        }).start();
+    }
+
+    private UserReview getUserReview(Long tmdbId) {
+        if (!UserSession.getInstance().isLoggedIn()) {
+            return null;
+        }
+        try (HttpClient client = HttpClient.newHttpClient()) {
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create("http://localhost:8080/api/reviews/" + UserSession.getInstance().getUserId() + "/" + tmdbId))
+                    .build();
+
+            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+            if (response.statusCode() == 200 && response.body() != null && !response.body().isEmpty()) {
+                return new Gson().fromJson(response.body(), UserReview.class);
+            }
+
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
+        return null;
+    }
+
+
+    private void setupStarButton(Button btn, Movie m) {
+        btn.setText("⭐ Star Movie");
+        btn.setStyle("-fx-background-color: #E50914; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: 5;");
+        makeButtonAnimated(btn, true);
+        btn.setOnAction(ev -> {
+            starMovie(m);
+            setupUnstarButton(btn, m);
+        });
+    }
+
+    private void setupUnstarButton(Button btn, Movie m) {
+        btn.setText("Unstar");
+        btn.setStyle("-fx-background-color: #555; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: 5;");
+        makeButtonAnimated(btn, false);
+        btn.setOnAction(ev -> {
+            unstarMovie(m.getId());
+            setupStarButton(btn, m);
+        });
     }
 
     private void showMyStarsView() {
@@ -984,8 +1352,7 @@ public class HelloApplication extends Application {
         root.setCenter(loadingBox);
 
         new Thread(() -> {
-            try {
-                HttpClient client = HttpClient.newHttpClient();
+            try (HttpClient client = HttpClient.newHttpClient()) {
                 HttpRequest request = HttpRequest.newBuilder()
                         .uri(URI.create("http://localhost:8080/api/v1/stars/" + UserSession.getInstance().getUserId()))
                         .header("Content-Type", "application/json")
@@ -1023,19 +1390,18 @@ public class HelloApplication extends Application {
         }).start();
     }
 
-    private void starMovie(com.example.cinematch.Movie m) {
+    private void starMovie(Movie m) {
         new Thread(() -> {
-            try {
+            try (HttpClient client = HttpClient.newHttpClient()) {
                 com.cinematch.cinematchbackend.model.UserStar star = new com.cinematch.cinematchbackend.model.UserStar();
-                star.setTmdbId(m.id);
-                star.setTitle(m.title);
-                com.cinematch.cinematchbackend.model.User user = new com.cinematch.cinematchbackend.model.User();
+                star.setTmdbId(m.getId());
+                star.setTitle(m.getTitle());
+                User user = new User();
                 user.setId(UserSession.getInstance().getUserId());
                 star.setUser(user);
 
                 String jsonBody = new Gson().toJson(star);
 
-                HttpClient client = HttpClient.newHttpClient();
                 HttpRequest request = HttpRequest.newBuilder()
                         .uri(URI.create("http://localhost:8080/api/v1/stars"))
                         .header("Content-Type", "application/json")
@@ -1052,8 +1418,7 @@ public class HelloApplication extends Application {
 
     private void unstarMovie(Long tmdbId) {
         new Thread(() -> {
-            try {
-                HttpClient client = HttpClient.newHttpClient();
+            try (HttpClient client = HttpClient.newHttpClient()) {
                 HttpRequest request = HttpRequest.newBuilder()
                         .uri(URI.create("http://localhost:8080/api/v1/stars/" + UserSession.getInstance().getUserId() + "/" + tmdbId))
                         .DELETE()
@@ -1068,8 +1433,7 @@ public class HelloApplication extends Application {
     }
 
     private boolean isMovieStarred(Long tmdbId) {
-        try {
-            HttpClient client = HttpClient.newHttpClient();
+        try (HttpClient client = HttpClient.newHttpClient()) {
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create("http://localhost:8080/api/v1/stars/" + UserSession.getInstance().getUserId() + "/" + tmdbId))
                     .build();

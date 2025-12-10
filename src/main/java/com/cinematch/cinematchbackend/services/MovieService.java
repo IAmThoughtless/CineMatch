@@ -27,6 +27,7 @@ public class MovieService {
      * @return MovieResponse object or null if the API call fails.
      */
     public MovieResponse fetchTopMovies() {
+
         String url = "https://api.themoviedb.org/3/movie/popular?api_key=" + tmdbApiKey;
 
         try {
@@ -90,7 +91,7 @@ public class MovieService {
      */
     public Movie getMovieDetails(Long movieId) {
         try {
-            String url = "https://api.themoviedb.org/3/movie/" + movieId + "?api_key=" + tmdbApiKey;
+            String url = "https://api.themoviedb.org/3/movie/" + movieId + "?api_key=" + tmdbApiKey + "&append_to_response=reviews";
 
             HttpClient client = HttpClient.newHttpClient();
             HttpRequest request = HttpRequest.newBuilder()
@@ -143,5 +144,29 @@ public class MovieService {
             return null;
         }
     }
-}
 
+    public MovieResponse fetchByGenre(int genreId) {
+        String url = "https://api.themoviedb.org/3/discover/movie?api_key=" + tmdbApiKey + "&with_genres=" + genreId;
+
+        try {
+            HttpClient client = HttpClient.newHttpClient();
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(url))
+                    .build();
+
+            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+            if (response.statusCode() != 200) {
+                System.err.println("Genre API Request failed with status: " + response.statusCode());
+                return null;
+            }
+
+            Gson gson = new Gson();
+            return gson.fromJson(response.body(), MovieResponse.class);
+
+        } catch (Exception e) {
+            System.err.println("Error during Genre API call in MovieService: " + e.getMessage());
+            return null;
+        }
+    }
+}
