@@ -33,8 +33,15 @@ import java.net.http.HttpResponse;
 import java.util.Date;
 import java.util.Map;
 
-public class HelloApplication extends Application {
 
+import javafx.event.ActionEvent;
+import java.io.IOException;
+import java.util.Map;
+import java.util.List;
+
+
+public class HelloApplication extends Application {
+    private VBox whatsHotContainer;
     private VBox lastMovieListView;
     private BorderPane root;
     private int currentQuestionIndex = 0;
@@ -48,6 +55,46 @@ public class HelloApplication extends Application {
             "Horror", 27,
             "Sci-Fi", 878
     );
+    public MenuButton createGenreMenuButton() {
+        MenuButton genresMenuButton = new MenuButton("GENRES");
+        genresMenuButton.setPadding(new Insets(0));
+        genresMenuButton.setTextFill(Color.web("#E50914"));
+        genresMenuButton.setStyle(
+                        "-fx-font-size: 20px;" +
+                        "-fx-font-weight: bold;" +
+                        "-fx-background-color: transparent;" +
+                        "-fx-cursor: hand;" +
+                        "-fx-padding: 225 10 0 0;");
+
+
+        for (Map.Entry<String, Integer> entry : genreMap.entrySet()) {
+            String genreName = entry.getKey();
+
+            MenuItem item = new MenuItem(genreName);
+
+            item.setOnAction(this::handleGenreSelection);
+
+            genresMenuButton.getItems().add(item);
+        }
+        return genresMenuButton;
+    }
+
+    private void handleGenreSelection(ActionEvent event) {
+
+        MenuItem source = (MenuItem) event.getSource();
+        String selectedGenreName = source.getText();
+
+
+        int genreId = genreMap.get(selectedGenreName);
+
+        System.out.println("Επιλέχθηκε κατηγορία: " + selectedGenreName + ", ID: " + genreId);
+        if (whatsHotContainer != null) {
+            loadWhatsHotMoviesByGenre(whatsHotContainer, selectedGenreName, genreId);
+        }
+
+
+    }
+
 
     @Override
     public void start(Stage primaryStage) {
@@ -58,10 +105,13 @@ public class HelloApplication extends Application {
         logoLabel.setStyle("-fx-text-fill: #E50914;");
         logoLabel.setFont(Font.font("Verdana", FontWeight.BOLD, 24));
 
+        logoLabel.setPadding(new Insets(0));
+
         DropShadow shadow = new DropShadow();
         shadow.setOffsetY(3.0);
         shadow.setColor(Color.color(0, 0, 0, 0.5));
         logoLabel.setEffect(shadow);
+
 
         Button homeBtn = new Button("Home Page");
         homeBtn.setOnAction(event -> showHomeView());
@@ -86,6 +136,7 @@ public class HelloApplication extends Application {
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
         HBox header = new HBox(15);
+
         header.getChildren().addAll(logoLabel, spacer, homeBtn, top10Btn, quizBtn, loginBtn);
         header.setPadding(new Insets(15, 25, 15, 25));
         header.setAlignment(Pos.CENTER_LEFT);
@@ -94,7 +145,7 @@ public class HelloApplication extends Application {
         root.setTop(header);
         root.setStyle("-fx-background-color: linear-gradient(to bottom right, #141E30, #243B55);");
 
-        Scene scene = new Scene(root, 900, 650);
+        Scene scene = new Scene(root, 1100, 750);
         primaryStage.setTitle("CineMatch App");
         primaryStage.setScene(scene);
         primaryStage.show();
@@ -103,7 +154,7 @@ public class HelloApplication extends Application {
     }
 
     private void showHomeView() {
-        root.setTop(createHeader());
+
 
         Label welcomeLabel = new Label("Welcome to CineMatch");
         welcomeLabel.setStyle("-fx-text-fill: white; -fx-font-size: 36px; -fx-font-weight: bold;");
@@ -126,7 +177,8 @@ public class HelloApplication extends Application {
         searchBox.setAlignment(Pos.CENTER);
         VBox.setMargin(searchBox, new Insets(30, 0, 0, 0));
 
-        VBox whatsHotContainer = new VBox(20);
+
+        whatsHotContainer = new VBox(20);
         whatsHotContainer.setAlignment(Pos.TOP_CENTER);
         VBox.setMargin(whatsHotContainer, new Insets(40, 0, 0, 0));
 
@@ -142,38 +194,16 @@ public class HelloApplication extends Application {
         BorderPane homeLayout = new BorderPane();
         homeLayout.setCenter(scrollPane);
 
-        VBox genreSidebar = createGenreSidebar(whatsHotContainer);
-        homeLayout.setLeft(genreSidebar);
 
+        MenuButton genresMenuButton = createGenreMenuButton();
+        VBox sidebarContainer = new VBox(10);
+        sidebarContainer.setPadding(new Insets(20, 2, 20, 2));
+        sidebarContainer.setStyle("-fx-background-color: rgba(0, 0, 0, 0.2);");
+        sidebarContainer.getChildren().addAll(genresMenuButton);
+        homeLayout.setLeft(sidebarContainer);
         root.setCenter(homeLayout);
 
         loadWhatsHotMovies(whatsHotContainer);
-    }
-
-    private VBox createGenreSidebar(VBox targetContainer) {
-        VBox sidebar = new VBox(10);
-        sidebar.setPadding(new Insets(20));
-        sidebar.setStyle("-fx-background-color: rgba(0, 0, 0, 0.2);");
-
-        Label title = new Label("Genres");
-        title.setStyle("-fx-text-fill: #E50914; -fx-font-size: 20px; -fx-font-weight: bold;");
-        sidebar.getChildren().add(title);
-
-        Label allLabel = new Label("All");
-        allLabel.setStyle("-fx-text-fill: white; -fx-font-size: 16px; -fx-cursor: hand;");
-        allLabel.setOnMouseClicked(e -> loadWhatsHotMovies(targetContainer));
-        sidebar.getChildren().add(allLabel);
-
-        for (String genreName : genreMap.keySet()) {
-            Label genreLabel = new Label(genreName);
-            genreLabel.setStyle("-fx-text-fill: white; -fx-font-size: 16px; -fx-cursor: hand;");
-            genreLabel.setOnMouseClicked(e -> {
-                loadWhatsHotMoviesByGenre(targetContainer, genreName, genreMap.get(genreName));
-            });
-            sidebar.getChildren().add(genreLabel);
-        }
-
-        return sidebar;
     }
 
     private void loadWhatsHotMoviesByGenre(VBox targetContainer, String genreName, int genreId) {
