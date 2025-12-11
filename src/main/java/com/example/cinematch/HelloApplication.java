@@ -160,6 +160,7 @@ public class HelloApplication extends Application {
         makeButtonAnimated(loginBtn, true);
 
         Button quizBtn = new Button("Quiz");
+        quizBtn.setOnAction(event -> startQuizSession());
         quizBtn.setStyle("-fx-background-color: transparent; -fx-text-fill: white; -fx-font-size: 14px; -fx-font-weight: bold; -fx-cursor: hand; ");
         makeButtonAnimated(quizBtn, false);
 
