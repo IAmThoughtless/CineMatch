@@ -11,6 +11,9 @@ import com.cinematch.cinematchbackend.model.UserReview;
 import com.cinematch.cinematchbackend.model.MovieWithReviews;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
+import javafx.animation.KeyFrame;
+import javafx.animation.KeyValue;
+import javafx.animation.Timeline;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.geometry.Insets;
@@ -20,11 +23,13 @@ import javafx.scene.control.*;
 import javafx.scene.effect.DropShadow;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.input.KeyCode;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import javafx.stage.Stage;
+import javafx.util.Duration;
 
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -561,8 +566,8 @@ public class HelloApplication extends Application {
         VBox.setMargin(titleLabel, new Insets(0, 0, 10, 50)); // Εμφάνιση τίτλου αριστερά
 
         // 1. Δημιουργία HBox για τις κάρτες ταινιών (Οριζόντια διάταξη)
-        HBox movieRow = new HBox(20); // 20px κενό μεταξύ των καρτών
-        movieRow.setPadding(new Insets(0, 50, 0, 50)); // Οριζόντιο padding (αριστερά/δεξιά)
+        HBox movieRow = new HBox(18); // 20px κενό μεταξύ των καρτών
+        movieRow.setPadding(new Insets(0, 2, 0, 2)); // Οριζόντιο padding (αριστερά/δεξιά)
 
         if (movieResponse == null || movieResponse.results == null || movieResponse.results.isEmpty()) {
             Label noResultsLabel = new Label("No movies found for this section.");
@@ -609,15 +614,55 @@ public class HelloApplication extends Application {
         // 3. Τύλιγμα της οριζόντιας σειράς σε ScrollPane
         ScrollPane horizontalScrollPane = new ScrollPane(movieRow);
         horizontalScrollPane.setFitToHeight(true);
-        horizontalScrollPane.setHbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED); // Να εμφανίζεται η μπάρα κύλισης
+        horizontalScrollPane.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER); // Απενεργοποίηση οριζόντιας μπάρας
         horizontalScrollPane.setVbarPolicy(ScrollPane.ScrollBarPolicy.NEVER); // Απενεργοποίηση κάθετης κύλισης
         horizontalScrollPane.setPrefHeight(350); // Καθορισμός ύψους για τη σειρά (αφίσα + τίτλος + padding)
         horizontalScrollPane.setStyle("-fx-background: transparent; -fx-background-color: transparent;");
 
+        // --- NEW BUTTON LOGIC ---
+        Button leftArrow = new Button("<");
+        Button rightArrow = new Button(">");
+
+        String arrowStyle = "-fx-background-color: rgba(0,0,0,0.5); -fx-text-fill: white; -fx-font-size: 18px; -fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: 15;";
+        leftArrow.setStyle(arrowStyle);
+        rightArrow.setStyle(arrowStyle);
+
+        leftArrow.setPrefSize(40, 40);
+        rightArrow.setPrefSize(40, 40);
+        leftArrow.setStyle(arrowStyle + "-fx-background-radius: 20;"); // Circle
+        rightArrow.setStyle(arrowStyle + "-fx-background-radius: 20;");
+
+        leftArrow.setOnAction(e -> {
+            double targetHValue = Math.max(0, horizontalScrollPane.getHvalue() - 0.3334);
+            Timeline timeline = new Timeline();
+            KeyValue keyValue = new KeyValue(horizontalScrollPane.hvalueProperty(), targetHValue);
+            timeline.getKeyFrames().add(new KeyFrame(Duration.millis(400), keyValue));
+            timeline.play();
+        });
+        rightArrow.setOnAction(e -> {
+            double targetHValue = Math.min(1, horizontalScrollPane.getHvalue() + 0.3334);
+            Timeline timeline = new Timeline();
+            KeyValue keyValue = new KeyValue(horizontalScrollPane.hvalueProperty(), targetHValue);
+            timeline.getKeyFrames().add(new KeyFrame(Duration.millis(400), keyValue));
+            timeline.play();
+        });
+
+        // Hover effects for arrows
+        leftArrow.setOnMouseEntered(e -> leftArrow.setStyle(arrowStyle + "-fx-background-radius: 20; -fx-background-color: rgba(229, 9, 20, 0.8);"));
+        leftArrow.setOnMouseExited(e -> leftArrow.setStyle(arrowStyle + "-fx-background-radius: 20;"));
+
+        rightArrow.setOnMouseEntered(e -> rightArrow.setStyle(arrowStyle + "-fx-background-radius: 20; -fx-background-color: rgba(229, 9, 20, 0.8);"));
+        rightArrow.setOnMouseExited(e -> rightArrow.setStyle(arrowStyle + "-fx-background-radius: 20;"));
+
+
+        HBox containerWithArrows = new HBox(5, leftArrow, horizontalScrollPane, rightArrow);
+        containerWithArrows.setAlignment(Pos.CENTER);
+        HBox.setHgrow(horizontalScrollPane, Priority.ALWAYS);
+
         // 4. Επιστροφή του τελικού κατακόρυφου layout (Τίτλος + ScrollPane)
-        VBox finalLayout = new VBox(10, titleLabel, horizontalScrollPane);
+        VBox finalLayout = new VBox(10, titleLabel, containerWithArrows);
         finalLayout.setAlignment(Pos.TOP_LEFT);
-        finalLayout.setMaxWidth(900);
+        finalLayout.setMaxWidth(1100); // Increased max width to accommodate arrows
 
         return finalLayout;
     }
