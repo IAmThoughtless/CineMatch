@@ -49,6 +49,7 @@ public class HelloApplication extends Application {
     private final int TOTAL_QUESTIONS = 5;
     private java.util.List<com.cinematch.cinematchbackend.model.QuizQuestion> loadedQuestions;
     private final Map<String, Integer> genreMap = Map.of(
+            "Animation",16,
             "Action", 28,
             "Comedy", 35,
             "Drama", 18,
@@ -64,30 +65,60 @@ public class HelloApplication extends Application {
                         "-fx-font-weight: bold;" +
                         "-fx-background-color: transparent;" +
                         "-fx-cursor: hand;" +
-                        "-fx-padding: 225 10 0 0;");
+                        "-fx-padding: 0 10 0 0;");
 
+        // "All" button
+        Label allLabel = new Label("All");
+        allLabel.setStyle("-fx-text-fill: white; -fx-font-size: 16px; -fx-font-weight: bold;");
+        HBox allContainer = new HBox(allLabel);
+        allContainer.setPadding(new Insets(2, 5, 2, 5));
+        allContainer.setStyle("-fx-background-color: #141E30;");
+        allContainer.setAlignment(Pos.CENTER_LEFT);
+        allContainer.setPrefWidth(120);
+        allContainer.setOnMouseEntered(e -> allContainer.setStyle("-fx-background-color: #E50914;" + "-fx-cursor: hand;"));
+        allContainer.setOnMouseExited(e -> allContainer.setStyle("-fx-background-color: #141E30;"));
+        CustomMenuItem allItem = new CustomMenuItem(allContainer);
+        allItem.setHideOnClick(true);
+        allItem.setStyle("-fx-background-color: transparent;");
+        allContainer.setOnMouseClicked(e -> {
+            loadWhatsHotMovies(whatsHotContainer);
+        });
+        genresMenuButton.getItems().add(allItem);
 
         for (Map.Entry<String, Integer> entry : genreMap.entrySet()) {
             String genreName = entry.getKey();
 
-            MenuItem item = new MenuItem(genreName);
+            Label label = new Label(genreName);
+            label.setStyle("-fx-text-fill: white; -fx-font-size: 16px; -fx-font-weight: bold;");
 
-            item.setOnAction(this::handleGenreSelection);
+            HBox container = new HBox(label);
+            container.setPadding(new Insets(2, 5, 2, 5));
+            container.setStyle("-fx-background-color: #141E30;"); // Different color (Dark blue)
+            container.setAlignment(Pos.CENTER_LEFT);
+            container.setPrefWidth(120);
+
+            container.setOnMouseEntered(e -> container.setStyle("-fx-background-color: #E50914;"+"-fx-cursor: hand;")); // Hover color
+            container.setOnMouseExited(e -> container.setStyle("-fx-background-color: #141E30;"));
+
+            CustomMenuItem item = new CustomMenuItem(container);
+            item.setHideOnClick(true);
+            item.setStyle("-fx-background-color: transparent;");
+            
+            container.setOnMouseClicked(e -> {
+                handleGenreSelection(genreName);
+                //genresMenuButton.hide();
+            });
 
             genresMenuButton.getItems().add(item);
         }
         return genresMenuButton;
     }
 
-    private void handleGenreSelection(ActionEvent event) {
-
-        MenuItem source = (MenuItem) event.getSource();
-        String selectedGenreName = source.getText();
-
+    private void handleGenreSelection(String selectedGenreName) {
 
         int genreId = genreMap.get(selectedGenreName);
 
-        System.out.println("Επιλέχθηκε κατηγορία: " + selectedGenreName + ", ID: " + genreId);
+        //System.out.println("Επιλέχθηκε κατηγορία: " + selectedGenreName + ", ID: " + genreId);
         if (whatsHotContainer != null) {
             loadWhatsHotMoviesByGenre(whatsHotContainer, selectedGenreName, genreId);
         }
@@ -129,6 +160,7 @@ public class HelloApplication extends Application {
         makeButtonAnimated(loginBtn, true);
 
         Button quizBtn = new Button("Quiz");
+        quizBtn.setOnAction(event -> startQuizSession());
         quizBtn.setStyle("-fx-background-color: transparent; -fx-text-fill: white; -fx-font-size: 14px; -fx-font-weight: bold; -fx-cursor: hand; ");
         makeButtonAnimated(quizBtn, false);
 
@@ -196,6 +228,7 @@ public class HelloApplication extends Application {
 
 
         MenuButton genresMenuButton = createGenreMenuButton();
+        VBox.setMargin(genresMenuButton, new Insets(225, 0, 0, 0));
         VBox sidebarContainer = new VBox(10);
         sidebarContainer.setPadding(new Insets(20, 2, 20, 2));
         sidebarContainer.setStyle("-fx-background-color: rgba(0, 0, 0, 0.2);");
