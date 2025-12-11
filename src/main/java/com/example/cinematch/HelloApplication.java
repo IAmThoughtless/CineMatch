@@ -187,6 +187,8 @@ public class HelloApplication extends Application {
 
     private void showHomeView() {
 
+        root.setTop(createHeader());
+
 
         Label welcomeLabel = new Label("Welcome to CineMatch");
         welcomeLabel.setStyle("-fx-text-fill: white; -fx-font-size: 36px; -fx-font-weight: bold;");
