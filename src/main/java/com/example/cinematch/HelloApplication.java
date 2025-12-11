@@ -160,7 +160,7 @@ public class HelloApplication extends Application {
         makeButtonAnimated(loginBtn, true);
 
         Button quizBtn = new Button("Quiz");
-        quizBtn.setOnAction(event -> startQuizSession());
+        quizBtn.setOnAction(event -> showQuizSelectionView());
         quizBtn.setStyle("-fx-background-color: transparent; -fx-text-fill: white; -fx-font-size: 14px; -fx-font-weight: bold; -fx-cursor: hand; ");
         makeButtonAnimated(quizBtn, false);
 
@@ -786,21 +786,32 @@ public class HelloApplication extends Application {
     }
 
     private void makeButtonAnimated(Button btn, boolean isRedButton) {
+
+        final String originalStyle = btn.getStyle();
+
         btn.setOnMouseEntered(e -> {
-            btn.setScaleX(1.10);
-            btn.setScaleY(1.10);
+
+            btn.setScaleX(1.05);
+            btn.setScaleY(1.05);
+
             if (isRedButton) {
-                double radius = btn.getBackground().getFills().getFirst().getRadii().getTopLeftHorizontalRadius();
-                btn.setStyle("-fx-background-color: #ff1f2c; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: " + radius + ";");
+
+                if (originalStyle.contains("#E50914")) {
+                    btn.setStyle(originalStyle.replace("#E50914", "#ff1f2c"));
+                } else {
+                    // Ασφάλεια: Αν δεν βρει το χρώμα, απλά προσθέτει το νέο χρώμα στο τέλος
+                    btn.setStyle(originalStyle + "-fx-background-color: #ff1f2c;");
+                }
             }
         });
+
         btn.setOnMouseExited(e -> {
+
             btn.setScaleX(1.0);
             btn.setScaleY(1.0);
-            if (isRedButton) {
-                double radius = btn.getBackground().getFills().getFirst().getRadii().getTopLeftHorizontalRadius();
-                btn.setStyle("-fx-background-color: #E50914; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: " + radius + ";");
-            }
+
+
+            btn.setStyle(originalStyle);
         });
     }
     private HBox createHeader() {
@@ -825,10 +836,10 @@ public class HelloApplication extends Application {
 
         Button quizBtn = new Button("Quiz");
         quizBtn.setStyle("-fx-background-color: transparent; -fx-text-fill: white; -fx-font-size: 14px; -fx-font-weight: bold; -fx-cursor: hand; ");
-        quizBtn.setOnAction(event -> startQuizSession());
+        quizBtn.setOnAction(event -> showQuizSelectionView());
         makeButtonAnimated(quizBtn, false);
 
-        // --- NEW LOGIC START ---
+        // --- NEW LOGIC START --
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
@@ -876,13 +887,13 @@ public class HelloApplication extends Application {
     }
 
 
-    private void startQuizSession() {
+    // Άλλαξε την υπογραφή της μεθόδου
+    private void startQuizSession(boolean isPersonalized) {
         score = 0;
         currentQuestionIndex = 0;
-        loadedQuestions = null; // Καθαρισμός
+        loadedQuestions = null;
 
-
-        Label loadingLabel = new Label("Generating Quiz...\nPlease wait, this takes a few seconds!");
+        Label loadingLabel = new Label(isPersonalized ? "Generating Quiz from your Favorites..." : "Generating General Movie Quiz...");
         loadingLabel.setStyle("-fx-text-fill: white; -fx-font-size: 20px; -fx-text-alignment: center;");
         ProgressIndicator indicator = new ProgressIndicator();
 
@@ -890,12 +901,22 @@ public class HelloApplication extends Application {
         loadingBox.setAlignment(Pos.CENTER);
         root.setCenter(loadingBox);
 
-
         new Thread(() -> {
             try (HttpClient client = HttpClient.newHttpClient()) {
+
+                // Επιλογή URL ανάλογα με τον τύπο Quiz
+                String url;
+                if (isPersonalized) {
+                    Long userId = UserSession.getInstance().getUserId();
+                    url = "http://localhost:8080/api/quiz/personalized/" + userId;
+                } else {
+                    url = "http://localhost:8080/api/quiz/batch";
+                }
+
                 HttpRequest request = HttpRequest.newBuilder()
-                        .uri(URI.create("http://localhost:8080/api/quiz/batch"))
+                        .uri(URI.create(url))
                         .header("Content-Type", "application/json")
+                        .GET() // Προσοχή: Το personalized είναι GET στο Controller που έγραψα παραπάνω
                         .build();
 
                 HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
@@ -904,7 +925,6 @@ public class HelloApplication extends Application {
                     if (response.statusCode() == 200) {
                         Gson gson = new Gson();
                         java.lang.reflect.Type listType = new TypeToken<java.util.List<com.cinematch.cinematchbackend.model.QuizQuestion>>(){}.getType();
-
                         loadedQuestions = gson.fromJson(response.body(), listType);
 
                         if (loadedQuestions != null && !loadedQuestions.isEmpty()) {
@@ -912,6 +932,13 @@ public class HelloApplication extends Application {
                         } else {
                             loadingLabel.setText("Failed to load questions.");
                         }
+                    } else if (response.statusCode() == 400) {
+                        // Χειρισμός αν δεν έχει αρκετά favorites
+                        loadingLabel.setText("Not enough favorites! Star at least 3 movies.");
+                        loadingLabel.setStyle("-fx-text-fill: #E50914; -fx-font-size: 20px;");
+                        Button backBtn = new Button("Go Back");
+                        backBtn.setOnAction(e -> showQuizSelectionView());
+                        loadingBox.getChildren().add(backBtn);
                     } else {
                         loadingLabel.setText("Error from server: " + response.statusCode());
                     }
@@ -1026,7 +1053,7 @@ public class HelloApplication extends Application {
 
         Button playAgainBtn = new Button("Play Again");
         playAgainBtn.setStyle("-fx-background-color: white; -fx-text-fill: black; -fx-font-weight: bold; -fx-cursor: hand; -fx-padding: 10 20;");
-        playAgainBtn.setOnAction(e -> startQuizSession());
+        playAgainBtn.setOnAction(e -> showQuizSelectionView());
 
         Button homeBtn = new Button("Back to Homepage");
         homeBtn.setStyle("-fx-background-color: #333; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand; -fx-padding: 10 20;");
@@ -1463,6 +1490,35 @@ public class HelloApplication extends Application {
                 ex.printStackTrace();
             }
         }).start();
+    }
+
+    private void showQuizSelectionView() {
+        Label title = new Label("Choose Quiz Type");
+        title.setStyle("-fx-text-fill: white; -fx-font-size: 32px; -fx-font-weight: bold;");
+
+
+        Button generalBtn = new Button("🌍 General Knowledge");
+        generalBtn.setStyle("-fx-background-color: #333; -fx-text-fill: white; -fx-font-size: 18px; -fx-cursor: hand; -fx-padding: 15 30; -fx-background-radius: 10;");
+        makeButtonAnimated(generalBtn, false);
+        generalBtn.setOnAction(e -> startQuizSession(false)); // false = not personalized
+
+
+        Button personalBtn = new Button("⭐ My Favorites Quiz");
+        personalBtn.setStyle("-fx-background-color: #E50914; -fx-text-fill: white; -fx-font-size: 18px; -fx-font-weight: bold; -fx-cursor: hand; -fx-padding: 15 30; -fx-background-radius: 10;");
+        makeButtonAnimated(personalBtn, true);
+
+
+        if (UserSession.getInstance().isLoggedIn()) {
+            personalBtn.setOnAction(e -> startQuizSession(true)); // true = personalized
+        } else {
+            personalBtn.setDisable(true);
+            personalBtn.setText("⭐ My Favorites (Login Required)");
+            personalBtn.setStyle("-fx-background-color: #555; -fx-text-fill: #aaa; -fx-font-size: 18px; -fx-padding: 15 30; -fx-background-radius: 10;");
+        }
+
+        VBox layout = new VBox(30, title, generalBtn, personalBtn);
+        layout.setAlignment(Pos.CENTER);
+        root.setCenter(layout);
     }
 
     private boolean isMovieStarred(Long tmdbId) {
