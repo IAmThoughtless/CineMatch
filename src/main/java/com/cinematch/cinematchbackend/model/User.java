@@ -4,7 +4,7 @@ import jakarta.persistence.*;
 import lombok.Data;
 
 @Entity
-@Table(name = "users") // <--- Make sure this matches your MySQL table name
+@Table(name = "users")
 @Data
 public class User {
     @Id

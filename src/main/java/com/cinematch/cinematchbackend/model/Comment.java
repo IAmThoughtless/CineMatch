@@ -5,16 +5,15 @@ import lombok.Data;
 
 import java.time.LocalDateTime;
 
-        @Entity // 1. Δηλώνει ότι αυτή η κλάση αντιστοιχεί σε έναν πίνακα της βάσης
-        @Table(name = "comments") // 2. Καθορίζει το όνομα του πίνακα στη βάση
+        @Entity
+        @Table(name = "comments")
         @Data
             public class Comment {
 
-            @Id // 3. Ορίζει το πρωτεύον κλειδί
-            @GeneratedValue(strategy = GenerationType.IDENTITY) // 4. Δίνει τιμή στο ID αυτόματα (auto-increment)
+            @Id
+            @GeneratedValue(strategy = GenerationType.IDENTITY)
             private Long id;
 
-    // 5. Πεδία που αντιστοιχούν στα δεδομένα του σχολίου
     @Column(name = "movie_id")
     private Long movieId;
 
@@ -53,15 +52,14 @@ import java.time.LocalDateTime;
             @Column(name = "user_name")
     private String userName;
 
-    @Column(name = "comment_text") // Το όνομα της στήλης στη βάση
-    private String text; // Το όνομα του πεδίου στη Java
+    @Column(name = "comment_text")
+    private String text;
 
-    private int rating; // Αν η στήλη στη βάση λέγεται 'rating'
+    private int rating;
 
     @Column(name = "date_created")
     private LocalDateTime dateCreated;
 
-    // 6. Constructors (Ένας κενός απαιτείται από το JPA)
     public Comment() {
     }
 
