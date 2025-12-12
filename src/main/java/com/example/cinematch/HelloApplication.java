@@ -6,6 +6,7 @@ import com.cinematch.cinematchbackend.model.Review;
 import com.cinematch.cinematchbackend.model.User;
 import com.cinematch.cinematchbackend.model.UserReview;
 import com.cinematch.cinematchbackend.model.MovieWithReviews;
+import com.cinematch.cinematchbackend.model.LeaderboardDTO;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import javafx.animation.KeyFrame;
@@ -24,6 +25,7 @@ import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
+import javafx.scene.text.TextAlignment;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 import javafx.scene.input.KeyCode;
@@ -32,6 +34,7 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.util.List;
 import java.util.Map;
 
 
@@ -901,11 +904,16 @@ public class HelloApplication extends Application {
         quizBtn.setOnAction(event -> showQuizSelectionView());
         makeButtonAnimated(quizBtn, false);
 
+        Button leaderboardBtn = new Button("Leaderboard");
+        leaderboardBtn.setStyle("-fx-background-color: transparent; -fx-text-fill: white; -fx-font-size: 14px; -fx-font-weight: bold; -fx-cursor: hand; ");
+        leaderboardBtn.setOnAction(event -> showLeaderboardView());
+        makeButtonAnimated(leaderboardBtn, false);
+
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
         HBox header = new HBox(15);
-        header.getChildren().addAll(logoLabel, spacer, homeBtn, top10Btn, quizBtn);
+        header.getChildren().addAll(logoLabel, spacer, homeBtn, top10Btn, quizBtn, leaderboardBtn);
 
         // Check if user is logged in using our new Session class
         if (UserSession.getInstance().isLoggedIn()) {
@@ -1098,6 +1106,10 @@ public class HelloApplication extends Application {
 
 
     private void showQuizResult() {
+        if (UserSession.getInstance().isLoggedIn()) {
+            submitQuizScore();
+        }
+
         Label title = new Label(" End of Quiz !");
         title.setStyle("-fx-text-fill: #E50914; -fx-font-size: 32px; -fx-font-weight: bold;");
 
@@ -1127,6 +1139,209 @@ public class HelloApplication extends Application {
         layout.setAlignment(Pos.CENTER);
 
         root.setCenter(layout);
+    }
+
+    private void submitQuizScore() {
+        new Thread(() -> {
+            try (HttpClient client = HttpClient.newHttpClient()) {
+                String jsonBody = String.format("{\"userId\": %d, \"score\": %d, \"maxScore\": %d}",
+                        UserSession.getInstance().getUserId(), score, TOTAL_QUESTIONS);
+
+                HttpRequest request = HttpRequest.newBuilder()
+                        .uri(URI.create("http://localhost:8080/api/quiz/submit"))
+                        .header("Content-Type", "application/json")
+                        .POST(HttpRequest.BodyPublishers.ofString(jsonBody))
+                        .build();
+
+                client.send(request, HttpResponse.BodyHandlers.ofString());
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
+        }).start();
+    }
+
+    private void showLeaderboardView() {
+        Label loadingLabel = new Label("Fetching Leaderboard...");
+        loadingLabel.setStyle("-fx-text-fill: white; -fx-font-size: 24px;");
+        ProgressIndicator indicator = new ProgressIndicator();
+        VBox loadingBox = new VBox(20, loadingLabel, indicator);
+        loadingBox.setAlignment(Pos.CENTER);
+        root.setCenter(loadingBox);
+
+        new Thread(() -> {
+            try (HttpClient client = HttpClient.newHttpClient()) {
+                HttpRequest request = HttpRequest.newBuilder()
+                        .uri(URI.create("http://localhost:8080/api/quiz/leaderboard"))
+                        .header("Content-Type", "application/json")
+                        .build();
+
+                HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+                Platform.runLater(() -> {
+                    if (response.statusCode() == 200) {
+                        Gson gson = new Gson();
+                        java.lang.reflect.Type listType = new TypeToken<List<LeaderboardDTO>>(){}.getType();
+                        List<LeaderboardDTO> leaderboard = gson.fromJson(response.body(), listType);
+                        VBox leaderboardContent = buildLeaderboardUI("🏆 Leaderboard 🏆", leaderboard);
+                        root.setCenter(leaderboardContent);
+                    } else {
+                        Label errorLabel = new Label("Could not fetch leaderboard. Check API and network connection.");
+                        errorLabel.setStyle("-fx-text-fill: red; -fx-font-size: 18px;");
+                        VBox errorBox = new VBox(errorLabel);
+                        errorBox.setAlignment(Pos.CENTER);
+                        root.setCenter(errorBox);
+                    }
+                });
+
+            } catch (Exception ex) {
+                Label errorLabel = new Label("Could not fetch leaderboard. Check API and network connection.");
+                errorLabel.setStyle("-fx-text-fill: red; -fx-font-size: 18px;");
+                VBox errorBox = new VBox(errorLabel);
+                errorBox.setAlignment(Pos.CENTER);
+                root.setCenter(errorBox);
+            }
+        }).start();
+    }
+
+    private VBox buildLeaderboardUI(String headerText, List<LeaderboardDTO> leaderboard) {
+        Label titleLabel = new Label(headerText);
+        titleLabel.setStyle("-fx-text-fill: #E50914; -fx-font-size: 32px; -fx-font-weight: bold;");
+        VBox.setMargin(titleLabel, new Insets(0, 0, 20, 0));
+
+        VBox contentLayout = new VBox(20);
+        contentLayout.setAlignment(Pos.TOP_CENTER);
+        contentLayout.setPadding(new Insets(0, 0, 50, 0)); 
+
+        if (leaderboard == null || leaderboard.isEmpty()) {
+            Label noResultsLabel = new Label("No scores on the leaderboard yet.");
+            noResultsLabel.setStyle("-fx-text-fill: white; -fx-font-size: 18px;");
+            contentLayout.getChildren().add(noResultsLabel);
+        } else {
+            // 1. Podium Section (Top 3)
+            HBox podiumBox = new HBox(15); 
+            podiumBox.setAlignment(Pos.BOTTOM_CENTER); 
+            podiumBox.setPadding(new Insets(20, 0, 30, 0));
+
+            LeaderboardDTO first = leaderboard.size() > 0 ? leaderboard.get(0) : null;
+            LeaderboardDTO second = leaderboard.size() > 1 ? leaderboard.get(1) : null;
+            LeaderboardDTO third = leaderboard.size() > 2 ? leaderboard.get(2) : null;
+
+            if (second != null) podiumBox.getChildren().add(createPodiumStep(second, 2));
+            if (first != null) podiumBox.getChildren().add(createPodiumStep(first, 1));
+            if (third != null) podiumBox.getChildren().add(createPodiumStep(third, 3));
+
+            contentLayout.getChildren().add(podiumBox);
+
+            // 2. List Section (4th onwards)
+            if (leaderboard.size() > 3) {
+                VBox listContainer = new VBox(10);
+                listContainer.setMaxWidth(800); 
+                listContainer.setStyle("-fx-background-color: rgba(255, 255, 255, 0.05); -fx-background-radius: 10; -fx-padding: 20;");
+                
+                for (int i = 3; i < leaderboard.size(); i++) {
+                    LeaderboardDTO entry = leaderboard.get(i);
+                    HBox row = createLeaderboardRow(entry, i + 1);
+                    listContainer.getChildren().add(row);
+                    
+                    if (i < leaderboard.size() - 1) {
+                        Region sep = new Region();
+                        sep.setPrefHeight(1);
+                        sep.setStyle("-fx-background-color: rgba(255,255,255,0.1);");
+                        listContainer.getChildren().add(sep);
+                    }
+                }
+                contentLayout.getChildren().add(listContainer);
+            }
+        }
+
+        ScrollPane scrollPane = new ScrollPane(contentLayout);
+        scrollPane.setFitToWidth(true);
+        scrollPane.setStyle("-fx-background: transparent; -fx-background-color: transparent;");
+        scrollPane.setPannable(true);
+        scrollPane.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
+
+        VBox finalLayout = new VBox(20, titleLabel, scrollPane);
+        finalLayout.setPadding(new Insets(30));
+        finalLayout.setAlignment(Pos.TOP_CENTER);
+
+        return finalLayout;
+    }
+
+    private VBox createPodiumStep(LeaderboardDTO entry, int rank) {
+        // Colors
+        String color;
+        double height;
+        String emoji;
+        
+        if (rank == 1) {
+            color = "#FFD700"; // Gold
+            height = 250;
+            emoji = "👑";
+        } else if (rank == 2) {
+            color = "#C0C0C0"; // Silver
+            height = 180;
+            emoji = "🥈";
+        } else {
+            color = "#CD7F32"; // Bronze
+            height = 130;
+            emoji = "🥉";
+        }
+
+        // User Info (Above the bar)
+        Label usernameLabel = new Label(entry.getUsername());
+        usernameLabel.setStyle("-fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 16px;");
+        usernameLabel.setWrapText(true);
+        usernameLabel.setTextAlignment(TextAlignment.CENTER);
+        usernameLabel.setMaxWidth(120);
+
+        Label scoreLabel = new Label(entry.getScore() + " pts");
+        scoreLabel.setStyle("-fx-text-fill: " + color + "; -fx-font-weight: bold; -fx-font-size: 14px;");
+
+        Label dateLabel = new Label(entry.getCreatedAt());
+        dateLabel.setStyle("-fx-text-fill: #cccccc; -fx-font-size: 12px;");
+
+        VBox infoBox = new VBox(5, usernameLabel, scoreLabel, dateLabel);
+        infoBox.setAlignment(Pos.BOTTOM_CENTER);
+        infoBox.setPadding(new Insets(0, 0, 10, 0));
+
+        // The Bar
+        VBox bar = new VBox();
+        bar.setPrefSize(100, height);
+        bar.setStyle("-fx-background-color: " + color + "; -fx-background-radius: 10 10 0 0; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.5), 10, 0, 0, 0);");
+        bar.setAlignment(Pos.CENTER);
+        
+        Label rankLabel = new Label(emoji);
+        rankLabel.setFont(Font.font("Segoe UI Emoji", 40));
+        rankLabel.setStyle("-fx-text-fill: white;");
+
+        bar.getChildren().add(rankLabel);
+
+        VBox step = new VBox(infoBox, bar);
+        step.setAlignment(Pos.BOTTOM_CENTER);
+        return step;
+    }
+
+    private HBox createLeaderboardRow(LeaderboardDTO entry, int rank) {
+        Label rankLabel = new Label(rank + ".");
+        rankLabel.setStyle("-fx-text-fill: #aaa; -fx-font-size: 18px; -fx-font-weight: bold;");
+        rankLabel.setPrefWidth(40);
+
+        Label userLabel = new Label(entry.getUsername());
+        userLabel.setStyle("-fx-text-fill: white; -fx-font-size: 18px;");
+        
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+
+        Label scoreLabel = new Label(entry.getScore() + " pts");
+        scoreLabel.setStyle("-fx-text-fill: #E50914; -fx-font-size: 18px; -fx-font-weight: bold;");
+
+        Label dateLabel = new Label(entry.getCreatedAt());
+        dateLabel.setStyle("-fx-text-fill: #666; -fx-font-size: 12px;");
+        dateLabel.setPadding(new Insets(0, 0, 0, 15));
+
+        HBox row = new HBox(10, rankLabel, userLabel, spacer, scoreLabel, dateLabel);
+        row.setAlignment(Pos.CENTER_LEFT);
+        row.setPadding(new Insets(5));
+        return row;
     }
 
     private void showMovieDetails(Movie initialMovieData) {
