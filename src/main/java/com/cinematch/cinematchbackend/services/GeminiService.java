@@ -1,6 +1,6 @@
 package com.cinematch.cinematchbackend.services;
 
-import com.cinematch.cinematchbackend.model.QuizQuestion;
+import com.cinematch.cinematchbackend.model.Quiz.QuizQuestion;
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;

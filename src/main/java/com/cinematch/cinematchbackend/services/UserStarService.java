@@ -1,9 +1,9 @@
 package com.cinematch.cinematchbackend.services;
 
-import com.cinematch.cinematchbackend.model.Movie;
-import com.cinematch.cinematchbackend.model.MovieResponse;
-import com.cinematch.cinematchbackend.model.UserStar;
-import com.cinematch.cinematchbackend.model.UserStarDTO;
+import com.cinematch.cinematchbackend.model.Movie.Movie;
+import com.cinematch.cinematchbackend.model.Movie.MovieResponse;
+import com.cinematch.cinematchbackend.model.Star.UserStar;
+import com.cinematch.cinematchbackend.model.Star.UserStarDTO;
 import com.cinematch.cinematchbackend.repository.UserStarRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;

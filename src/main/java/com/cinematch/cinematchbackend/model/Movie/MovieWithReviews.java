@@ -1,5 +1,6 @@
-package com.cinematch.cinematchbackend.model;
+package com.cinematch.cinematchbackend.model.Movie;
 
+import com.cinematch.cinematchbackend.model.Comments_Reviews.UserReview;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;

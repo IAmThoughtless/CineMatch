@@ -1,4 +1,4 @@
-package com.cinematch.cinematchbackend.model;
+package com.cinematch.cinematchbackend.model.Quiz;
 
 import lombok.Getter;
 import lombok.Setter;

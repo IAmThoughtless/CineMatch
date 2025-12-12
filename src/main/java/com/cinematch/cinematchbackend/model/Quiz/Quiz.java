@@ -1,5 +1,6 @@
-package com.cinematch.cinematchbackend.model;
+package com.cinematch.cinematchbackend.model.Quiz;
 
+import com.cinematch.cinematchbackend.model.User;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;

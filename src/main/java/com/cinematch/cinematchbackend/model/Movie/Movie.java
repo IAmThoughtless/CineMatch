@@ -1,5 +1,6 @@
-package com.cinematch.cinematchbackend.model;
+package com.cinematch.cinematchbackend.model.Movie;
 
+import com.cinematch.cinematchbackend.model.Comments_Reviews.Review;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;

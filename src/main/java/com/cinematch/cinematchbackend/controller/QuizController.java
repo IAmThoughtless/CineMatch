@@ -1,9 +1,9 @@
 package com.cinematch.cinematchbackend.controller;
 
-import com.cinematch.cinematchbackend.model.LeaderboardDTO;
-import com.cinematch.cinematchbackend.model.Quiz;
-import com.cinematch.cinematchbackend.model.QuizQuestion;
-import com.cinematch.cinematchbackend.model.QuizSubmission;
+import com.cinematch.cinematchbackend.model.Quiz.LeaderboardDTO;
+import com.cinematch.cinematchbackend.model.Quiz.Quiz;
+import com.cinematch.cinematchbackend.model.Quiz.QuizQuestion;
+import com.cinematch.cinematchbackend.model.Quiz.QuizSubmission;
 import com.cinematch.cinematchbackend.model.User;
 import com.cinematch.cinematchbackend.services.GeminiService;
 import com.cinematch.cinematchbackend.services.QuizService;
@@ -11,7 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
-import com.cinematch.cinematchbackend.model.UserStar;
+import com.cinematch.cinematchbackend.model.Star.UserStar;
 import com.cinematch.cinematchbackend.repository.UserStarRepository;
 import java.util.stream.Collectors;
 import java.sql.Timestamp;

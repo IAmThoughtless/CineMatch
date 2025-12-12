@@ -1,6 +1,6 @@
 package com.cinematch.cinematchbackend.services;
 
-import com.cinematch.cinematchbackend.model.UserReview;
+import com.cinematch.cinematchbackend.model.Comments_Reviews.UserReview;
 import com.cinematch.cinematchbackend.repository.UserReviewRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;

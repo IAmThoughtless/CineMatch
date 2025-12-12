@@ -1,6 +1,6 @@
 package com.cinematch.cinematchbackend.repository;
 
-import com.cinematch.cinematchbackend.model.Quiz;
+import com.cinematch.cinematchbackend.model.Quiz.Quiz;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;

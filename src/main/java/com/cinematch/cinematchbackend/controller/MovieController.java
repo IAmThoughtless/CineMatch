@@ -1,9 +1,9 @@
 package com.cinematch.cinematchbackend.controller;
 
-import com.cinematch.cinematchbackend.model.Movie;
-import com.cinematch.cinematchbackend.model.MovieResponse;
-import com.cinematch.cinematchbackend.model.MovieWithReviews;
-import com.cinematch.cinematchbackend.model.UserReview;
+import com.cinematch.cinematchbackend.model.Movie.Movie;
+import com.cinematch.cinematchbackend.model.Movie.MovieResponse;
+import com.cinematch.cinematchbackend.model.Movie.MovieWithReviews;
+import com.cinematch.cinematchbackend.model.Comments_Reviews.UserReview;
 import com.cinematch.cinematchbackend.services.UserReviewService;
 import com.cinematch.cinematchbackend.services.MovieService;
 import org.springframework.beans.factory.annotation.Autowired;

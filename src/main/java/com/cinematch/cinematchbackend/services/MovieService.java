@@ -1,7 +1,7 @@
 package com.cinematch.cinematchbackend.services;
 
-import com.cinematch.cinematchbackend.model.Movie;
-import com.cinematch.cinematchbackend.model.MovieResponse;
+import com.cinematch.cinematchbackend.model.Movie.Movie;
+import com.cinematch.cinematchbackend.model.Movie.MovieResponse;
 import com.google.gson.Gson;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;

@@ -1,12 +1,14 @@
 package com.example.cinematch;
 
-import com.cinematch.cinematchbackend.model.MovieResponse;
-import com.cinematch.cinematchbackend.model.Movie;
-import com.cinematch.cinematchbackend.model.Review;
+import com.cinematch.cinematchbackend.model.Movie.MovieResponse;
+import com.cinematch.cinematchbackend.model.Movie.Movie;
+import com.cinematch.cinematchbackend.model.Comments_Reviews.Review;
+import com.cinematch.cinematchbackend.model.Quiz.QuizQuestion;
+import com.cinematch.cinematchbackend.model.Star.UserStar;
 import com.cinematch.cinematchbackend.model.User;
-import com.cinematch.cinematchbackend.model.UserReview;
-import com.cinematch.cinematchbackend.model.MovieWithReviews;
-import com.cinematch.cinematchbackend.model.LeaderboardDTO;
+import com.cinematch.cinematchbackend.model.Comments_Reviews.UserReview;
+import com.cinematch.cinematchbackend.model.Movie.MovieWithReviews;
+import com.cinematch.cinematchbackend.model.Quiz.LeaderboardDTO;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import javafx.animation.KeyFrame;
@@ -46,7 +48,7 @@ public class HelloApplication extends Application {
     private int currentQuestionIndex = 0;
     private int score = 0;
     private final int TOTAL_QUESTIONS = 5;
-    private java.util.List<com.cinematch.cinematchbackend.model.QuizQuestion> loadedQuestions;
+    private java.util.List<QuizQuestion> loadedQuestions;
     private final Map<String, Integer> genreMap = Map.of(
             "Animation",16,
             "Action", 28,
@@ -864,7 +866,7 @@ public class HelloApplication extends Application {
                 if (originalStyle.contains("#E50914")) {
                     btn.setStyle(originalStyle.replace("#E50914", "#ff1f2c"));
                 } else {
-                    // Ασφάλεια: Αν δεν βρει το χρώμα, απλά προσθέτει το νέο χρώμα στο τέλος
+                    // Ασφάλεια: Αν δε βρει το χρώμα, απλά προσθέτει το νέο χρώμα στο τέλος
                     btn.setStyle(originalStyle + "-fx-background-color: #ff1f2c;");
                 }
             }
@@ -993,7 +995,7 @@ public class HelloApplication extends Application {
                 Platform.runLater(() -> {
                     if (response.statusCode() == 200) {
                         Gson gson = new Gson();
-                        java.lang.reflect.Type listType = new TypeToken<java.util.List<com.cinematch.cinematchbackend.model.QuizQuestion>>(){}.getType();
+                        java.lang.reflect.Type listType = new TypeToken<java.util.List<QuizQuestion>>(){}.getType();
                         loadedQuestions = gson.fromJson(response.body(), listType);
 
                         if (loadedQuestions != null && !loadedQuestions.isEmpty()) {
@@ -1002,7 +1004,6 @@ public class HelloApplication extends Application {
                             loadingLabel.setText("Failed to load questions.");
                         }
                     } else if (response.statusCode() == 400) {
-                        // Χειρισμός αν δεν έχει αρκετά favorites
                         loadingLabel.setText("Not enough favorites! Star at least 3 movies.");
                         loadingLabel.setStyle("-fx-text-fill: #E50914; -fx-font-size: 20px;");
                         Button backBtn = new Button("Go Back");
@@ -1027,7 +1028,7 @@ public class HelloApplication extends Application {
         }
 
 
-        com.cinematch.cinematchbackend.model.QuizQuestion q = loadedQuestions.get(currentQuestionIndex);
+        QuizQuestion q = loadedQuestions.get(currentQuestionIndex);
 
 
         currentQuestionIndex++;
@@ -1037,7 +1038,7 @@ public class HelloApplication extends Application {
     }
 
 
-    private void displayQuestionUI(com.cinematch.cinematchbackend.model.QuizQuestion q) {
+    private void displayQuestionUI(QuizQuestion q) {
 
 
         Label headerLabel = new Label("Question " + currentQuestionIndex + " / " + TOTAL_QUESTIONS);
@@ -1221,7 +1222,7 @@ public class HelloApplication extends Application {
             podiumBox.setAlignment(Pos.BOTTOM_CENTER); 
             podiumBox.setPadding(new Insets(20, 0, 30, 0));
 
-            LeaderboardDTO first = leaderboard.size() > 0 ? leaderboard.get(0) : null;
+            LeaderboardDTO first = !leaderboard.isEmpty() ? leaderboard.get(0) : null;
             LeaderboardDTO second = leaderboard.size() > 1 ? leaderboard.get(1) : null;
             LeaderboardDTO third = leaderboard.size() > 2 ? leaderboard.get(2) : null;
 
@@ -1714,7 +1715,7 @@ public class HelloApplication extends Application {
     private void starMovie(Movie m) {
         new Thread(() -> {
             try (HttpClient client = HttpClient.newHttpClient()) {
-                com.cinematch.cinematchbackend.model.UserStar star = new com.cinematch.cinematchbackend.model.UserStar();
+                UserStar star = new UserStar();
                 star.setTmdbId(m.getId());
                 star.setTitle(m.getTitle());
                 User user = new User();

@@ -1,7 +1,7 @@
 package com.cinematch.cinematchbackend.services;
 
-import com.cinematch.cinematchbackend.model.LeaderboardDTO;
-import com.cinematch.cinematchbackend.model.Quiz;
+import com.cinematch.cinematchbackend.model.Quiz.LeaderboardDTO;
+import com.cinematch.cinematchbackend.model.Quiz.Quiz;
 import com.cinematch.cinematchbackend.repository.QuizRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;

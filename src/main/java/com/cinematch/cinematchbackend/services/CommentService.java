@@ -1,5 +1,5 @@
 package com.cinematch.cinematchbackend.services;
-import com.cinematch.cinematchbackend.model.Comment;
+import com.cinematch.cinematchbackend.model.Comments_Reviews.Comment;
 import com.cinematch.cinematchbackend.repository.CommentRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service; // <-- ΝΕΟ IMPORT

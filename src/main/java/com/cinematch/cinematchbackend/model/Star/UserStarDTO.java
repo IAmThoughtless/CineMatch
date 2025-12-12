@@ -1,4 +1,4 @@
-package com.cinematch.cinematchbackend.model;
+package com.cinematch.cinematchbackend.model.Star;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

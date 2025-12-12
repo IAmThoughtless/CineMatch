@@ -67,6 +67,14 @@ module com.example.cinematch {
     opens com.cinematch.cinematchbackend.model to spring.core, spring.beans, spring.context, com.google.gson, spring.web, org.hibernate.orm.core, com.fasterxml.jackson.databind;
     exports com.cinematch.cinematchbackend.repository;
     opens com.cinematch.cinematchbackend.repository to spring.beans, spring.boot, spring.context, spring.core, spring.data.jpa;
+    exports com.cinematch.cinematchbackend.model.Comments_Reviews;
+    opens com.cinematch.cinematchbackend.model.Comments_Reviews to com.fasterxml.jackson.databind, com.google.gson, org.hibernate.orm.core, spring.beans, spring.context, spring.core, spring.web;
+    exports com.cinematch.cinematchbackend.model.Quiz;
+    opens com.cinematch.cinematchbackend.model.Quiz to com.fasterxml.jackson.databind, com.google.gson, org.hibernate.orm.core, spring.beans, spring.context, spring.core, spring.web;
+    exports com.cinematch.cinematchbackend.model.Movie;
+    opens com.cinematch.cinematchbackend.model.Movie to com.fasterxml.jackson.databind, com.google.gson, org.hibernate.orm.core, spring.beans, spring.context, spring.core, spring.web;
+    exports com.cinematch.cinematchbackend.model.Star;
+    opens com.cinematch.cinematchbackend.model.Star to com.fasterxml.jackson.databind, com.google.gson, org.hibernate.orm.core, spring.beans, spring.context, spring.core, spring.web;
 
     // 5. OPEN REPOSITORIES (Uncommented & Updated)
     // Spring needs to see this to create the database connection

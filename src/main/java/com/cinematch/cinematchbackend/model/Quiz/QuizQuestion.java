@@ -1,4 +1,4 @@
-package com.cinematch.cinematchbackend.model;
+package com.cinematch.cinematchbackend.model.Quiz;
 
 import com.google.gson.annotations.SerializedName; // <--- Σημαντικό Import
 import java.util.List;

@@ -1,4 +1,4 @@
-package com.cinematch.cinematchbackend.model;
+package com.cinematch.cinematchbackend.model.Movie;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
