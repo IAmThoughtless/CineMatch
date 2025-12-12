@@ -1,8 +1,5 @@
 package com.example.cinematch;
 
-// Import your Backend Models
-// If your User class is in a different package, change the line above!
-
 import com.cinematch.cinematchbackend.model.MovieResponse;
 import com.cinematch.cinematchbackend.model.Movie;
 import com.cinematch.cinematchbackend.model.Review;
@@ -23,26 +20,20 @@ import javafx.scene.control.*;
 import javafx.scene.effect.DropShadow;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
-import javafx.scene.input.KeyCode;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import javafx.stage.Stage;
 import javafx.util.Duration;
+import javafx.scene.input.KeyCode;
 
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
-import java.util.Date;
 import java.util.Map;
 
-
-import javafx.event.ActionEvent;
-import java.io.IOException;
-import java.util.Map;
-import java.util.List;
 
 
 public class HelloApplication extends Application {
@@ -98,7 +89,7 @@ public class HelloApplication extends Application {
 
             HBox container = new HBox(label);
             container.setPadding(new Insets(2, 5, 2, 5));
-            container.setStyle("-fx-background-color: #141E30;"); // Different color (Dark blue)
+            container.setStyle("-fx-background-color: #141E30;");
             container.setAlignment(Pos.CENTER_LEFT);
             container.setPrefWidth(120);
 
@@ -111,7 +102,6 @@ public class HelloApplication extends Application {
             
             container.setOnMouseClicked(e -> {
                 handleGenreSelection(genreName);
-                //genresMenuButton.hide();
             });
 
             genresMenuButton.getItems().add(item);
@@ -123,7 +113,6 @@ public class HelloApplication extends Application {
 
         int genreId = genreMap.get(selectedGenreName);
 
-        //System.out.println("Επιλέχθηκε κατηγορία: " + selectedGenreName + ", ID: " + genreId);
         if (whatsHotContainer != null) {
             loadWhatsHotMoviesByGenre(whatsHotContainer, selectedGenreName, genreId);
         }
@@ -294,11 +283,11 @@ public class HelloApplication extends Application {
         ProgressIndicator indicator = new ProgressIndicator();
         VBox loadingBox = new VBox(10, loadingLabel, indicator);
         loadingBox.setAlignment(Pos.CENTER);
-        targetContainer.getChildren().add(loadingBox); // Εμφάνιση loading
+        targetContainer.getChildren().add(loadingBox);
 
         new Thread(() -> {
             try (HttpClient client = HttpClient.newHttpClient()) {
-                // Κλήση στο νέο endpoint
+
                 HttpRequest request = HttpRequest.newBuilder()
                         .uri(URI.create("http://localhost:8080/api/movie/whats-hot"))
                         .header("Content-Type", "application/json")
@@ -307,7 +296,7 @@ public class HelloApplication extends Application {
                 HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
 
                 Platform.runLater(() -> {
-                    targetContainer.getChildren().clear(); // Αφαίρεση loading
+                    targetContainer.getChildren().clear();
                     Gson gson = new Gson();
                     MovieResponse movies = gson.fromJson(response.body(), MovieResponse.class);
 
@@ -317,7 +306,7 @@ public class HelloApplication extends Application {
                         targetContainer.getChildren().add(errorLabel);
                     }
                     else {
-                        // Χρησιμοποιούμε τη νέα μέθοδο για εμφάνιση της λίστας
+
                         VBox whatsHotSection = buildCompactMovieListUI("🔥 What's Hot 🔥", movies);
                         targetContainer.getChildren().add(whatsHotSection);
                     }
@@ -400,6 +389,17 @@ public class HelloApplication extends Application {
         Label messageLabel = new Label("");
         messageLabel.setStyle("-fx-text-fill: yellow; -fx-font-weight: bold;");
 
+        passwordField.setOnKeyPressed(event -> {
+            if (event.getCode() == KeyCode.ENTER) {
+                signInBtn.fire();
+            }
+        });
+        usernameField.setOnKeyPressed(event -> {
+            if (event.getCode() == KeyCode.ENTER) {
+                signInBtn.fire();
+            }
+        });
+
         signInBtn.setOnAction(event -> {
             signInBtn.setDisable(true);
             String username = usernameField.getText();
@@ -407,7 +407,6 @@ public class HelloApplication extends Application {
 
             new Thread(() -> {
                 try (HttpClient client = HttpClient.newHttpClient()) {
-                    // Assuming User constructor: User(username, password)
                     User user = new User();
                     user.setUsername(username);
                     user.setPassword(password);
@@ -430,7 +429,7 @@ public class HelloApplication extends Application {
                             User loggedInUser = gson.fromJson(response.body(), User.class);
                             UserSession.getInstance().setUsername(loggedInUser.getUsername());
                             UserSession.getInstance().setUserId(loggedInUser.getId());
-                            showHomeView();
+                                showHomeView();
                         } else {
                             messageLabel.setStyle("-fx-text-fill: red;");
                             messageLabel.setText("Login Failed: " + response.statusCode());
@@ -495,6 +494,28 @@ public class HelloApplication extends Application {
 
         Label messageLabel = new Label("");
         messageLabel.setStyle("-fx-text-fill: yellow; -fx-font-weight: bold;");
+
+        // --- NEW LOGIC: Handle Enter Key ---
+        confirmPassField.setOnKeyPressed(event -> {
+            if (event.getCode() == KeyCode.ENTER) {
+                registerBtn.fire();
+            }
+        });
+        passField.setOnKeyPressed(event -> {
+            if (event.getCode() == KeyCode.ENTER) {
+                registerBtn.fire();
+            }
+        });
+        userField.setOnKeyPressed(event -> {
+            if (event.getCode() == KeyCode.ENTER) {
+                registerBtn.fire();
+            }
+        });
+        emailField.setOnKeyPressed(event -> {
+            if (event.getCode() == KeyCode.ENTER) {
+                registerBtn.fire();
+            }
+        });
 
         registerBtn.setOnAction(e -> {
             registerBtn.setDisable(true);
@@ -563,37 +584,35 @@ public class HelloApplication extends Application {
 
         Label titleLabel = new Label(headerText);
         titleLabel.setStyle("-fx-text-fill: #E50914; -fx-font-size: 24px; -fx-font-weight: bold;");
-        VBox.setMargin(titleLabel, new Insets(0, 0, 10, 50)); // Εμφάνιση τίτλου αριστερά
+        VBox.setMargin(titleLabel, new Insets(0, 0, 10, 50));
 
-        // 1. Δημιουργία HBox για τις κάρτες ταινιών (Οριζόντια διάταξη)
-        HBox movieRow = new HBox(18); // 20px κενό μεταξύ των καρτών
-        movieRow.setPadding(new Insets(0, 2, 0, 2)); // Οριζόντιο padding (αριστερά/δεξιά)
+        // 1. HBox creation for movie cards
+        HBox movieRow = new HBox(18); // Padding between movies
+        movieRow.setPadding(new Insets(0, 2, 0, 2));
 
         if (movieResponse == null || movieResponse.results == null || movieResponse.results.isEmpty()) {
             Label noResultsLabel = new Label("No movies found for this section.");
             noResultsLabel.setStyle("-fx-text-fill: white; -fx-font-size: 18px;");
-            // Αν δεν υπάρχουν αποτελέσματα, τοποθετούμε το μήνυμα σε VBox
             return new VBox(20, titleLabel, noResultsLabel);
         }
 
-        // 2. Δημιουργία και προσθήκη καρτών
-        int limit = Math.min(20, movieResponse.results.size()); // Αύξηση του ορίου σε 20 για οριζόντια σειρά
+        // 2. Creation and Addition of movie cards
+        int limit = Math.min(20, movieResponse.results.size());
 
         for (int i = 0; i < limit; i++) {
             Movie m = movieResponse.results.get(i);
 
-            // --- Δημιουργία μιας Κάρτας Ταινίας (Στοιχείο VBox) ---
-            // Εδώ η κάρτα γίνεται VBox για να περιέχει την αφίσα και τον τίτλο κάθετα
+            // Creation of a Movie Card
 
             ImageView posterView = createPosterImageView(m.getPoster_path());
-            posterView.setFitWidth(150); // Μεγαλύτερη αφίσα για οριζόντια σειρά
+            posterView.setFitWidth(150);
             posterView.setFitHeight(225);
 
             Label movieTitle = new Label(m.getTitle());
             movieTitle.setStyle("-fx-text-fill: white; -fx-font-size: 14px; -fx-font-weight: bold;");
             movieTitle.setWrapText(true);
             movieTitle.setMaxWidth(150);
-            movieTitle.setMaxHeight(40); // Περιορισμός ύψους τίτλου
+            movieTitle.setMaxHeight(40);
 
             Label rating = new Label(String.format("⭐ %.1f", m.getVote_average()));
             rating.setStyle("-fx-text-fill: #E50914; -fx-font-size: 12px;");
@@ -611,15 +630,13 @@ public class HelloApplication extends Application {
             movieRow.getChildren().add(movieCard);
         }
 
-        // 3. Τύλιγμα της οριζόντιας σειράς σε ScrollPane
         ScrollPane horizontalScrollPane = new ScrollPane(movieRow);
         horizontalScrollPane.setFitToHeight(true);
-        horizontalScrollPane.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER); // Απενεργοποίηση οριζόντιας μπάρας
-        horizontalScrollPane.setVbarPolicy(ScrollPane.ScrollBarPolicy.NEVER); // Απενεργοποίηση κάθετης κύλισης
-        horizontalScrollPane.setPrefHeight(350); // Καθορισμός ύψους για τη σειρά (αφίσα + τίτλος + padding)
+        horizontalScrollPane.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
+        horizontalScrollPane.setVbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
+        horizontalScrollPane.setPrefHeight(350);
         horizontalScrollPane.setStyle("-fx-background: transparent; -fx-background-color: transparent;");
 
-        // --- NEW BUTTON LOGIC ---
         Button leftArrow = new Button("<");
         Button rightArrow = new Button(">");
 
@@ -629,7 +646,7 @@ public class HelloApplication extends Application {
 
         leftArrow.setPrefSize(40, 40);
         rightArrow.setPrefSize(40, 40);
-        leftArrow.setStyle(arrowStyle + "-fx-background-radius: 20;"); // Circle
+        leftArrow.setStyle(arrowStyle + "-fx-background-radius: 20;");
         rightArrow.setStyle(arrowStyle + "-fx-background-radius: 20;");
 
         leftArrow.setOnAction(e -> {
@@ -659,10 +676,10 @@ public class HelloApplication extends Application {
         containerWithArrows.setAlignment(Pos.CENTER);
         HBox.setHgrow(horizontalScrollPane, Priority.ALWAYS);
 
-        // 4. Επιστροφή του τελικού κατακόρυφου layout (Τίτλος + ScrollPane)
+
         VBox finalLayout = new VBox(10, titleLabel, containerWithArrows);
         finalLayout.setAlignment(Pos.TOP_LEFT);
-        finalLayout.setMaxWidth(1100); // Increased max width to accommodate arrows
+        finalLayout.setMaxWidth(1100);
 
         return finalLayout;
     }
@@ -884,7 +901,6 @@ public class HelloApplication extends Application {
         quizBtn.setOnAction(event -> showQuizSelectionView());
         makeButtonAnimated(quizBtn, false);
 
-        // --- NEW LOGIC START --
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
@@ -893,15 +909,17 @@ public class HelloApplication extends Application {
 
         // Check if user is logged in using our new Session class
         if (UserSession.getInstance().isLoggedIn()) {
-            // 1. Show Welcome Message
-            Label welcomeUser = new Label("Welcome, " + UserSession.getInstance().getUsername());
-            welcomeUser.setStyle("-fx-text-fill: #E50914; -fx-font-weight: bold; -fx-font-size: 14px;");
 
-            // 2. Show "My Stars" Button
+            // 1. Show "My Stars" Button
             Button myStarsBtn = new Button("My Stars");
             myStarsBtn.setStyle("-fx-background-color: transparent; -fx-text-fill: white; -fx-font-size: 14px; -fx-font-weight: bold; -fx-cursor: hand;");
             myStarsBtn.setOnAction(event -> showMyStarsView());
             makeButtonAnimated(myStarsBtn, false);
+
+            // 2. Show Welcome Message
+            Label welcomeUser = new Label("Welcome, " + UserSession.getInstance().getUsername());
+            welcomeUser.setStyle("-fx-text-fill: #E50914; -fx-font-weight: bold; -fx-font-size: 14px;");
+
 
             // 3. Show Logout Button
             Button logoutBtn = new Button("Logout");
@@ -911,7 +929,7 @@ public class HelloApplication extends Application {
                 showHomeView(); // Refresh view
             });
 
-            header.getChildren().addAll(welcomeUser, myStarsBtn, logoutBtn);
+            header.getChildren().addAll(myStarsBtn, welcomeUser, logoutBtn);
 
         } else {
             // 4. If NOT logged in, show Login Button
@@ -922,7 +940,6 @@ public class HelloApplication extends Application {
 
             header.getChildren().add(loginBtn);
         }
-        // --- NEW LOGIC END ---
 
         header.setPadding(new Insets(15, 25, 15, 25));
         header.setAlignment(Pos.CENTER_LEFT);
@@ -932,7 +949,6 @@ public class HelloApplication extends Application {
     }
 
 
-    // Άλλαξε την υπογραφή της μεθόδου
     private void startQuizSession(boolean isPersonalized) {
         score = 0;
         currentQuestionIndex = 0;
@@ -949,7 +965,7 @@ public class HelloApplication extends Application {
         new Thread(() -> {
             try (HttpClient client = HttpClient.newHttpClient()) {
 
-                // Επιλογή URL ανάλογα με τον τύπο Quiz
+                // URL choice depending on quiz type
                 String url;
                 if (isPersonalized) {
                     Long userId = UserSession.getInstance().getUserId();
@@ -961,7 +977,7 @@ public class HelloApplication extends Application {
                 HttpRequest request = HttpRequest.newBuilder()
                         .uri(URI.create(url))
                         .header("Content-Type", "application/json")
-                        .GET() // Προσοχή: Το personalized είναι GET στο Controller που έγραψα παραπάνω
+                        .GET()
                         .build();
 
                 HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
@@ -1114,7 +1130,7 @@ public class HelloApplication extends Application {
     }
 
     private void showMovieDetails(Movie initialMovieData) {
-        // Κουμπί επιστροφής
+
         Button backBtn = new Button("⬅ Back");
         backBtn.setStyle("-fx-background-color: transparent; -fx-text-fill: #E50914; -fx-font-size: 16px; -fx-font-weight: bold; -fx-cursor: hand;");
         backBtn.setOnAction(e -> {
@@ -1125,7 +1141,6 @@ public class HelloApplication extends Application {
             }
         });
 
-        // --- Βασικά Στοιχεία //
         ImageView posterView = createPosterImageView(initialMovieData.getPoster_path());
         posterView.setFitWidth(300);
         posterView.setFitHeight(450);
@@ -1144,7 +1159,6 @@ public class HelloApplication extends Application {
         overviewLabel.setWrapText(true);
         overviewLabel.setMaxWidth(600);
 
-        // --- Κουμπί Star ---
         Button starBtn = new Button("Loading...");
         starBtn.setDisable(true);
 
@@ -1174,7 +1188,7 @@ public class HelloApplication extends Application {
         topContent.setAlignment(Pos.CENTER);
         topContent.setPadding(new Insets(0, 0, 40, 0));
 
-        // --- ΤΜΗΜΑ ΚΡΙΤΙΚΩΝ (REVIEWS SECTION) ---
+        // REVIEWS SECTION
         VBox reviewsContainer = new VBox(15);
         reviewsContainer.setAlignment(Pos.TOP_LEFT);
         reviewsContainer.setMaxWidth(800);
@@ -1190,7 +1204,6 @@ public class HelloApplication extends Application {
 
         reviewsContainer.getChildren().addAll(reviewsHeader, userReviewsBox, loadingReviewsLabel);
 
-        // --- Add Review Form ---
         if (UserSession.getInstance().isLoggedIn()) {
             TextArea reviewTextArea = new TextArea();
             reviewTextArea.setPromptText("Write your review here...");
@@ -1200,15 +1213,6 @@ public class HelloApplication extends Application {
 
             Button submitReviewBtn = new Button("Submit Review");
             submitReviewBtn.setStyle("-fx-background-color: #E50914; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: 5;");
-
-            new Thread(() -> {
-                UserReview userReview = getUserReview(initialMovieData.getId());
-                Platform.runLater(() -> {
-                    if (userReview != null) {
-                        reviewTextArea.setText(userReview.getReviewText());
-                    }
-                });
-            }).start();
 
             submitReviewBtn.setOnAction(e -> {
                 String reviewText = reviewTextArea.getText();
@@ -1238,8 +1242,6 @@ public class HelloApplication extends Application {
         }
         
 
-
-        // ---  UI ---
         VBox mainContent = new VBox(20, topContent, reviewsContainer);
         mainContent.setAlignment(Pos.TOP_CENTER);
         mainContent.setPadding(new Insets(40));
@@ -1315,7 +1317,7 @@ public class HelloApplication extends Application {
                                 VBox reviewBox = new VBox(5);
                                 reviewBox.setStyle("-fx-background-color: rgba(255,255,255,0.05); -fx-padding: 15; -fx-background-radius: 10;");
 
-                                // --- ΛΟΓΙΚΗ EXPAND  ---
+
                                 int MAX_LENGTH = 400;
 
                                 if (review.getContent().length() > MAX_LENGTH) {
@@ -1390,7 +1392,6 @@ public class HelloApplication extends Application {
 
                 if (response.statusCode() == 200) {
                     Platform.runLater(() -> {
-                        // Refresh the movie details view to show the new review
                         showMovieDetails(movie);
                     });
                 }

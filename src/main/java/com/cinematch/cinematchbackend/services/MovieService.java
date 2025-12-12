@@ -22,10 +22,6 @@ public class MovieService {
         this.tmdbApiKey = tmdbApiKey;
     }
 
-    /**
-     * Fetches a list of popular movies from the TMDB API.
-     * @return MovieResponse object or null if the API call fails.
-     */
     public MovieResponse fetchTopMovies() {
 
         String url = "https://api.themoviedb.org/3/movie/popular?api_key=" + tmdbApiKey;
@@ -52,11 +48,6 @@ public class MovieService {
         }
     }
 
-    /**
-     * Searches for movies based on a query string.
-     * @param query The movie title to search for.
-     * @return MovieResponse object or null if the API call fails.
-     */
     public MovieResponse searchMovies(String query) {
         try {
 
@@ -84,11 +75,6 @@ public class MovieService {
         }
     }
 
-    /**
-     * Gets the details for a specific movie based on a movie id.
-     * @param movieId The movie id to search for.
-     * @return MovieResponse object or null if the API call fails.
-     */
     public Movie getMovieDetails(Long movieId) {
         try {
             String url = "https://api.themoviedb.org/3/movie/" + movieId + "?api_key=" + tmdbApiKey + "&append_to_response=reviews";
@@ -114,13 +100,7 @@ public class MovieService {
         }
     }
 
-    /**
-     * Fetches a list of movies currently playing (What's Hot).
-     * Uses TMDB's /movie/now_playing endpoint.
-     * @return MovieResponse object or null if the API call fails.
-     */
     public MovieResponse fetchWhatsHot() {
-        // Χρησιμοποιούμε το endpoint "now_playing"
         String url = "https://api.themoviedb.org/3/movie/now_playing?api_key=" + tmdbApiKey;
 
         try {
