@@ -926,6 +926,11 @@ public class HelloApplication extends Application {
             myStarsBtn.setOnAction(event -> showMyStarsView());
             makeButtonAnimated(myStarsBtn, false);
 
+            Button suggestionsBtn = new Button("Suggestions");
+            suggestionsBtn.setStyle("-fx-background-color: transparent; -fx-text-fill: white; -fx-font-size: 14px; -fx-font-weight: bold; -fx-cursor: hand;");
+            suggestionsBtn.setOnAction(event -> showSuggestionsView());
+            makeButtonAnimated(suggestionsBtn, false);
+
             // 2. Show Welcome Message
             Label welcomeUser = new Label("Welcome, " + UserSession.getInstance().getUsername());
             welcomeUser.setStyle("-fx-text-fill: #E50914; -fx-font-weight: bold; -fx-font-size: 14px;");
@@ -939,7 +944,7 @@ public class HelloApplication extends Application {
                 showHomeView(); // Refresh view
             });
 
-            header.getChildren().addAll(myStarsBtn, welcomeUser, logoutBtn);
+            header.getChildren().addAll(myStarsBtn, suggestionsBtn, welcomeUser, logoutBtn);
 
         } else {
             // 4. If NOT logged in, show Login Button
@@ -1693,6 +1698,58 @@ public class HelloApplication extends Application {
                         root.setCenter(myStarsContent);
                     } else {
                         Label errorLabel = new Label("Could not fetch your starred movies. Server response: " + response.statusCode());
+                        errorLabel.setStyle("-fx-text-fill: red; -fx-font-size: 18px;");
+                        VBox errorBox = new VBox(errorLabel);
+                        errorBox.setAlignment(Pos.CENTER);
+                        root.setCenter(errorBox);
+                    }
+                });
+
+            } catch (Exception ex) {
+                Platform.runLater(() -> {
+                    Label errorLabel = new Label("Connection Error: " + ex.getMessage());
+                    errorLabel.setStyle("-fx-text-fill: red; -fx-font-size: 18px;");
+                    VBox errorBox = new VBox(errorLabel);
+                    errorBox.setAlignment(Pos.CENTER);
+                    root.setCenter(errorBox);
+                });
+            }
+        }).start();
+    }
+
+    private void showSuggestionsView() {
+        if (!UserSession.getInstance().isLoggedIn()) {
+            showLoginView();
+            return;
+        }
+
+        Label loadingLabel = new Label("Fetching Your Movie Suggestions...");
+        loadingLabel.setStyle("-fx-text-fill: white; -fx-font-size: 24px;");
+        ProgressIndicator indicator = new ProgressIndicator();
+        VBox loadingBox = new VBox(20, loadingLabel, indicator);
+        loadingBox.setAlignment(Pos.CENTER);
+        root.setCenter(loadingBox);
+
+        new Thread(() -> {
+            try (HttpClient client = HttpClient.newHttpClient()) {
+                HttpRequest request = HttpRequest.newBuilder()
+                        .uri(URI.create("http://localhost:8080/api/movie/suggestions/" + UserSession.getInstance().getUserId()))
+                        .header("Content-Type", "application/json")
+                        .GET()
+                        .build();
+
+                HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+                Platform.runLater(() -> {
+                    if (response.statusCode() == 200) {
+                        Gson gson = new Gson();
+                        MovieResponse movieResponse = gson.fromJson(response.body(), MovieResponse.class);
+
+                        VBox suggestionsContent = buildMovieListUI("⭐ Suggested For You ⭐", movieResponse);
+                        lastMovieListView = suggestionsContent;
+                        root.setCenter(suggestionsContent);
+                    } else {
+                        Label errorLabel = new Label("Could not fetch your movie suggestions. Server response: " + response.statusCode());
                         errorLabel.setStyle("-fx-text-fill: red; -fx-font-size: 18px;");
                         VBox errorBox = new VBox(errorLabel);
                         errorBox.setAlignment(Pos.CENTER);
