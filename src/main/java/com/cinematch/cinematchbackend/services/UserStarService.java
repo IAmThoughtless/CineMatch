@@ -48,4 +48,13 @@ public class UserStarService {
     public boolean isMovieStarred(Long userId, Long tmdbId) {
         return userStarRepository.existsByUserIdAndTmdbId(userId, tmdbId);
     }
+
+    public List<UserStarDTO> getStarsByUserId(Long userId) {
+        List<UserStar> userStars = userStarRepository.findByUserIdOrderByCreatedAtDesc(userId);
+
+        // Map the entities to DTOs for the response
+        return userStars.stream()
+                .map(UserStarDTO::new)
+                .collect(Collectors.toList());
+    }
 }
