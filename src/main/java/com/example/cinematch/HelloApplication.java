@@ -1828,7 +1828,43 @@ public class HelloApplication extends Application {
 
 
         if (UserSession.getInstance().isLoggedIn()) {
-            personalBtn.setOnAction(e -> startQuizSession(true)); // true = personalized
+            personalBtn.setDisable(true);
+            personalBtn.setText("⭐ My Favorites Quiz (Checking...)");
+            personalBtn.setStyle("-fx-background-color: #555; -fx-text-fill: #aaa; -fx-font-size: 18px; -fx-padding: 15 30; -fx-background-radius: 10;");
+
+            new Thread(() -> {
+                try (HttpClient client = HttpClient.newHttpClient()) {
+                    HttpRequest request = HttpRequest.newBuilder()
+                            .uri(URI.create("http://localhost:8080/api/v1/stars/" + UserSession.getInstance().getUserId()))
+                            .header("Content-Type", "application/json")
+                            .GET()
+                            .build();
+
+                    HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+                    Platform.runLater(() -> {
+                        if (response.statusCode() == 200) {
+                            Gson gson = new Gson();
+                            MovieResponse movieResponse = gson.fromJson(response.body(), MovieResponse.class);
+                            if (movieResponse != null && movieResponse.results != null && movieResponse.results.size() >= 3) {
+                                personalBtn.setDisable(false);
+                                personalBtn.setText("⭐ My Favorites Quiz");
+                                personalBtn.setStyle("-fx-background-color: #E50914; -fx-text-fill: white; -fx-font-size: 18px; -fx-font-weight: bold; -fx-cursor: hand; -fx-padding: 15 30; -fx-background-radius: 10;");
+                                makeButtonAnimated(personalBtn, true);
+                                personalBtn.setOnAction(e -> startQuizSession(true));
+                            } else {
+                                personalBtn.setText("⭐ My Favorites (Star at least 3 movies)");
+                            }
+                        } else {
+                            personalBtn.setText("⭐ My Favorites (Error)");
+                        }
+                    });
+                } catch (Exception ex) {
+                    Platform.runLater(() -> {
+                        personalBtn.setText("⭐ My Favorites (Connection Error)");
+                    });
+                }
+            }).start();
         } else {
             personalBtn.setDisable(true);
             personalBtn.setText("⭐ My Favorites (Login Required)");
