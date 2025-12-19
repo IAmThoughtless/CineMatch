@@ -36,4 +36,8 @@ public class UserReview {
 
     @Column(name = "created_at", updatable = false)
     private Date createdAt;
+
+    @Lob
+    @Column(name = "image", length = 10000000)
+    private byte[] image;
 }

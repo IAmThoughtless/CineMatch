@@ -60,6 +60,10 @@ import java.time.LocalDateTime;
     @Column(name = "date_created")
     private LocalDateTime dateCreated;
 
+    @Lob
+    @Column(name = "image", length = 10000000)
+    private byte[] image;
+
     public Comment() {
     }
 
@@ -80,10 +84,12 @@ import java.time.LocalDateTime;
         this.text = text;
     }
 
+    public byte[] getImage() {
+        return image;
+    }
+
+    public void setImage(byte[] image) {
+        this.image = image;
+    }
+
 }
-
-
-
-
-
-

@@ -21,4 +21,8 @@ public class CommentService {
     public List<Comment> findByMovieId(Long movieId) {
         return commentRepository.findByMovieId(movieId);
     }
+
+    public Comment saveComment(Comment comment) {
+        return commentRepository.save(comment);
+    }
 }

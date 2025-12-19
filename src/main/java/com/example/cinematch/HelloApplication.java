@@ -9,7 +9,8 @@ import com.cinematch.cinematchbackend.model.User;
 import com.cinematch.cinematchbackend.model.Comments_Reviews.UserReview;
 import com.cinematch.cinematchbackend.model.Movie.MovieWithReviews;
 import com.cinematch.cinematchbackend.model.Quiz.LeaderboardDTO;
-import com.google.gson.Gson;
+import com.cinematch.cinematchbackend.model.Comments_Reviews.Comment;
+import com.google.gson.*;
 import com.google.gson.reflect.TypeToken;
 import javafx.animation.KeyFrame;
 import javafx.animation.KeyValue;
@@ -28,17 +29,27 @@ import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import javafx.scene.text.TextAlignment;
+import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 import javafx.scene.input.KeyCode;
 
+import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.IOException;
+import java.lang.reflect.Type;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-
+import java.util.Random;
 
 
 public class HelloApplication extends Application {
@@ -57,6 +68,35 @@ public class HelloApplication extends Application {
             "Horror", 27,
             "Sci-Fi", 878
     );
+
+    // Custom Gson instance with LocalDateTime adapter
+    private final Gson gson = new GsonBuilder()
+            .registerTypeAdapter(LocalDateTime.class, new JsonDeserializer<LocalDateTime>() {
+                @Override
+                public LocalDateTime deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
+                    return LocalDateTime.parse(json.getAsString(), DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+                }
+            })
+            .registerTypeAdapter(LocalDateTime.class, new JsonSerializer<LocalDateTime>() {
+                @Override
+                public JsonElement serialize(LocalDateTime src, Type typeOfSrc, JsonSerializationContext context) {
+                    return new JsonPrimitive(src.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
+                }
+            })
+            .registerTypeAdapter(byte[].class, new JsonDeserializer<byte[]>() {
+                @Override
+                public byte[] deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
+                    return java.util.Base64.getDecoder().decode(json.getAsString());
+                }
+            })
+            .registerTypeAdapter(byte[].class, new JsonSerializer<byte[]>() {
+                @Override
+                public JsonElement serialize(byte[] src, Type typeOfSrc, JsonSerializationContext context) {
+                    return new JsonPrimitive(java.util.Base64.getEncoder().encodeToString(src));
+                }
+            })
+            .create();
+
     public MenuButton createGenreMenuButton() {
         MenuButton genresMenuButton = new MenuButton("GENRES");
         genresMenuButton.setPadding(new Insets(0));
@@ -258,7 +298,6 @@ public class HelloApplication extends Application {
 
                 Platform.runLater(() -> {
                     targetContainer.getChildren().clear();
-                    Gson gson = new Gson();
                     MovieResponse movies = gson.fromJson(response.body(), MovieResponse.class);
 
                     if (response.statusCode() != 200 || movies == null || movies.results == null) {
@@ -302,7 +341,6 @@ public class HelloApplication extends Application {
 
                 Platform.runLater(() -> {
                     targetContainer.getChildren().clear();
-                    Gson gson = new Gson();
                     MovieResponse movies = gson.fromJson(response.body(), MovieResponse.class);
 
                     if (response.statusCode() != 200 || movies == null || movies.results == null) {
@@ -345,7 +383,6 @@ public class HelloApplication extends Application {
 
                 HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
                 Platform.runLater(() -> {
-                    Gson gson = new Gson();
                     MovieResponse movies = gson.fromJson(response.body(), MovieResponse.class);
 
                     if (response.statusCode() != 200 || movies == null || movies.results == null) {
@@ -416,7 +453,7 @@ public class HelloApplication extends Application {
                     user.setUsername(username);
                     user.setPassword(password);
 
-                    String jsonBody = new Gson().toJson(user);
+                    String jsonBody = gson.toJson(user);
 
                     HttpRequest request = HttpRequest.newBuilder()
                             .uri(URI.create("http://localhost:8080/api/auth/login"))
@@ -430,7 +467,6 @@ public class HelloApplication extends Application {
                         if (response.statusCode() == 200) {
                             messageLabel.setStyle("-fx-text-fill: lightgreen;");
                             messageLabel.setText("Login Successful!");
-                            Gson gson = new Gson();
                             User loggedInUser = gson.fromJson(response.body(), User.class);
                             UserSession.getInstance().setUsername(loggedInUser.getUsername());
                             UserSession.getInstance().setUserId(loggedInUser.getId());
@@ -541,7 +577,7 @@ public class HelloApplication extends Application {
                     newUser.setEmail(email);
                     newUser.setUsername(username);
                     newUser.setPassword(password);
-                    String jsonBody = new Gson().toJson(newUser);
+                    String jsonBody = gson.toJson(newUser);
 
                     HttpRequest request = HttpRequest.newBuilder()
                             .uri(URI.create("http://localhost:8080/api/auth/register"))
@@ -806,7 +842,7 @@ public class HelloApplication extends Application {
 
         new Thread(() -> {
             try (HttpClient client = HttpClient.newHttpClient()) {
-                String jsonBody = new Gson().toJson(query);
+                String jsonBody = gson.toJson(query);
 
                 HttpRequest request = HttpRequest.newBuilder()
                         .uri(URI.create("http://localhost:8080/api/movie/search"))
@@ -818,7 +854,6 @@ public class HelloApplication extends Application {
 
                 Platform.runLater(() -> {
                     if (response.statusCode() == 200) {
-                        Gson gson = new Gson();
                         MovieResponse movieResponse = gson.fromJson(response.body(), MovieResponse.class);
 
                         if (movieResponse != null && movieResponse.results != null && !movieResponse.results.isEmpty()) {
@@ -999,7 +1034,6 @@ public class HelloApplication extends Application {
 
                 Platform.runLater(() -> {
                     if (response.statusCode() == 200) {
-                        Gson gson = new Gson();
                         java.lang.reflect.Type listType = new TypeToken<java.util.List<QuizQuestion>>(){}.getType();
                         loadedQuestions = gson.fromJson(response.body(), listType);
 
@@ -1184,7 +1218,6 @@ public class HelloApplication extends Application {
                 HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
                 Platform.runLater(() -> {
                     if (response.statusCode() == 200) {
-                        Gson gson = new Gson();
                         java.lang.reflect.Type listType = new TypeToken<List<LeaderboardDTO>>(){}.getType();
                         List<LeaderboardDTO> leaderboard = gson.fromJson(response.body(), listType);
                         VBox leaderboardContent = buildLeaderboardUI("🏆 Leaderboard 🏆", leaderboard);
@@ -1350,6 +1383,8 @@ public class HelloApplication extends Application {
         return row;
     }
 
+    private File selectedImageFile;
+
     private void showMovieDetails(Movie initialMovieData) {
 
         Button backBtn = new Button("⬅ Back");
@@ -1425,45 +1460,88 @@ public class HelloApplication extends Application {
 
         reviewsContainer.getChildren().addAll(reviewsHeader, userReviewsBox, loadingReviewsLabel);
 
+        // COMMENTS SECTION
+        VBox commentsContainer = new VBox(15);
+        commentsContainer.setAlignment(Pos.TOP_LEFT);
+        commentsContainer.setMaxWidth(800);
+
+        Label commentsHeader = new Label("Comments");
+        commentsHeader.setStyle("-fx-text-fill: #E50914; -fx-font-size: 24px; -fx-font-weight: bold;");
+
+        VBox commentsBox = new VBox(10);
+        commentsBox.setAlignment(Pos.TOP_LEFT);
+
+        Label loadingCommentsLabel = new Label("Loading comments...");
+        loadingCommentsLabel.setStyle("-fx-text-fill: gray; -fx-font-style: italic;");
+
+        commentsContainer.getChildren().addAll(commentsHeader, commentsBox, loadingCommentsLabel);
+
         if (UserSession.getInstance().isLoggedIn()) {
-            TextArea reviewTextArea = new TextArea();
-            reviewTextArea.setPromptText("Write your review here...");
-            reviewTextArea.setWrapText(true);
-            reviewTextArea.setPrefHeight(100);
-            reviewTextArea.setStyle("-fx-control-inner-background:#333; -fx-prompt-text-fill: white; -fx-text-fill: white; -fx-background-radius: 5;");
+            // Add Comment Section
+            TextArea commentTextArea = new TextArea();
+            commentTextArea.setPromptText("Write your comment here...");
+            commentTextArea.setWrapText(true);
+            commentTextArea.setPrefHeight(100);
+            commentTextArea.setStyle("-fx-control-inner-background:#333; -fx-prompt-text-fill: white; -fx-text-fill: white; -fx-background-radius: 5;");
 
-            Button submitReviewBtn = new Button("Submit Review");
-            submitReviewBtn.setStyle("-fx-background-color: #E50914; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: 5;");
+            Button uploadImageBtn = new Button("Upload Image");
+            Label selectedImageLabel = new Label("No image selected");
+            selectedImageLabel.setStyle("-fx-text-fill: #cccccc;");
 
-            submitReviewBtn.setOnAction(e -> {
-                String reviewText = reviewTextArea.getText();
-                if (reviewText != null && !reviewText.trim().isEmpty()) {
-                    submitReview(initialMovieData, reviewText);
+            uploadImageBtn.setOnAction(e -> {
+                FileChooser fileChooser = new FileChooser();
+                fileChooser.setTitle("Select Image");
+                fileChooser.getExtensionFilters().addAll(
+                        new FileChooser.ExtensionFilter("Image Files", "*.png", "*.jpg", "*.jpeg", "*.gif")
+                );
+                File file = fileChooser.showOpenDialog(root.getScene().getWindow());
+                if (file != null) {
+                    selectedImageFile = file;
+                    selectedImageLabel.setText(file.getName());
                 }
             });
-            VBox addReviewBox = new VBox(10, new Label("Add Your Review"), reviewTextArea, submitReviewBtn);
-            addReviewBox.setAlignment(Pos.TOP_LEFT);
-            reviewsContainer.getChildren().add(addReviewBox);
+
+            Button submitCommentBtn = new Button("Submit Comment");
+            submitCommentBtn.setStyle("-fx-background-color: #E50914; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: 5;");
+
+            submitCommentBtn.setOnAction(e -> {
+                String commentText = commentTextArea.getText();
+                if (commentText != null && !commentText.trim().isEmpty()) {
+                    submitComment(initialMovieData, commentText, selectedImageFile);
+                    selectedImageFile = null; // Reset after submission
+                    selectedImageLabel.setText("No image selected");
+                    commentTextArea.clear();
+                }
+            });
+
+            HBox imageUploadBox = new HBox(10, uploadImageBtn, selectedImageLabel);
+            imageUploadBox.setAlignment(Pos.CENTER_LEFT);
+
+            VBox addCommentBox = new VBox(10, new Label("Add Your Comment"), commentTextArea, imageUploadBox, submitCommentBtn);
+            addCommentBox.setAlignment(Pos.TOP_LEFT);
+            commentsContainer.getChildren().add(addCommentBox);
+
         } else {
-            TextArea reviewTextArea = new TextArea();
-            reviewTextArea.setPromptText("Login or register to write a review");
-            reviewTextArea.setWrapText(true);
-            reviewTextArea.setPrefHeight(100);
-            reviewTextArea.setEditable(false); // Make it non-editable
-            reviewTextArea.setStyle("-fx-control-inner-background:#333; -fx-prompt-text-fill: white; -fx-background-radius: 5;");
-            reviewTextArea.setOnMouseClicked(e -> showLoginView()); // Redirect to login on click
+            // Comment Section for non-logged in users
+            TextArea commentTextArea = new TextArea();
+            commentTextArea.setPromptText("Login or register to write a comment");
+            commentTextArea.setWrapText(true);
+            commentTextArea.setPrefHeight(100);
+            commentTextArea.setEditable(false);
+            commentTextArea.setStyle("-fx-control-inner-background:#333; -fx-prompt-text-fill: white; -fx-background-radius: 5;");
+            commentTextArea.setOnMouseClicked(e -> showLoginView());
 
-            Button submitReviewBtn = new Button("Submit Review");
-            submitReviewBtn.setStyle("-fx-background-color: #E50914; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: 5;");
-            submitReviewBtn.setOnAction(e -> showLoginView()); // Redirect to login on button click
+            Button submitCommentBtn = new Button("Submit Comment");
+            submitCommentBtn.setStyle("-fx-background-color: #E50914; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: 5;");
+            submitCommentBtn.setOnAction(e -> showLoginView());
 
-            VBox addReviewBox = new VBox(10, new Label("Add Your Review"), reviewTextArea, submitReviewBtn);
-            addReviewBox.setAlignment(Pos.TOP_LEFT);
-            reviewsContainer.getChildren().add(addReviewBox);
+            VBox addCommentBox = new VBox(10, new Label("Add Your Comment"), commentTextArea, submitCommentBtn);
+            addCommentBox.setAlignment(Pos.TOP_LEFT);
+            commentsContainer.getChildren().add(addCommentBox);
         }
         
 
-        VBox mainContent = new VBox(20, topContent, reviewsContainer);
+        VBox mainContent = new VBox(20, topContent, reviewsContainer, commentsContainer);
         mainContent.setAlignment(Pos.TOP_CENTER);
         mainContent.setPadding(new Insets(40));
 
@@ -1490,7 +1568,6 @@ public class HelloApplication extends Application {
 
                 Platform.runLater(() -> {
                     if (response.statusCode() == 200) {
-                        Gson gson = new Gson();
                         MovieWithReviews movieWithReviews = gson.fromJson(response.body(), MovieWithReviews.class);
                         Movie fullMovie = movieWithReviews.getMovie();
                         java.util.List<UserReview> userReviews = movieWithReviews.getUserReviews();
@@ -1513,6 +1590,19 @@ public class HelloApplication extends Application {
                                 dateLabel.setStyle("-fx-text-fill: #cccccc; -fx-font-size: 12px;");
 
                                 VBox reviewBox = new VBox(5, authorLabel, contentLabel, dateLabel);
+
+                                if (review.getImage() != null && review.getImage().length > 0) {
+                                    try {
+                                        Image img = new Image(new ByteArrayInputStream(review.getImage()));
+                                        ImageView imageView = new ImageView(img);
+                                        imageView.setFitWidth(200);
+                                        imageView.setPreserveRatio(true);
+                                        reviewBox.getChildren().add(imageView);
+                                    } catch (Exception e) {
+                                        e.printStackTrace();
+                                    }
+                                }
+
                                 reviewBox.setStyle("-fx-background-color: rgba(255,255,255,0.05); -fx-padding: 15; -fx-background-radius: 10;");
                                 userReviewsBox.getChildren().add(reviewBox);
                             }
@@ -1589,6 +1679,66 @@ public class HelloApplication extends Application {
                 Platform.runLater(() -> loadingReviewsLabel.setText("Error loading reviews."));
             }
         }).start();
+
+        // Load Comments
+        new Thread(() -> {
+            try (HttpClient client = HttpClient.newHttpClient()) {
+                HttpRequest request = HttpRequest.newBuilder()
+                        .uri(URI.create("http://localhost:8080/api/comments/movie/" + initialMovieData.getId()))
+                        .header("Content-Type", "application/json")
+                        .GET()
+                        .build();
+
+                HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+                Platform.runLater(() -> {
+                    if (response.statusCode() == 200) {
+                        java.lang.reflect.Type listType = new TypeToken<List<Comment>>(){}.getType();
+                        List<Comment> comments = gson.fromJson(response.body(), listType);
+
+                        commentsContainer.getChildren().remove(loadingCommentsLabel);
+                        commentsBox.getChildren().clear();
+
+                        if (comments != null && !comments.isEmpty()) {
+                            for (Comment comment : comments) {
+                                Label authorLabel = new Label("👤 " + comment.getUserName());
+                                authorLabel.setStyle("-fx-text-fill: #cccccc; -fx-font-weight: bold; -fx-font-size: 14px;");
+
+                                Label contentLabel = new Label(comment.getText());
+                                contentLabel.setStyle("-fx-text-fill: white; -fx-font-size: 14px;");
+                                contentLabel.setWrapText(true);
+                                contentLabel.setMaxWidth(750);
+
+                                VBox commentBox = new VBox(5, authorLabel, contentLabel);
+
+                                if (comment.getImage() != null && comment.getImage().length > 0) {
+                                    try {
+                                        Image img = new Image(new ByteArrayInputStream(comment.getImage()));
+                                        ImageView imageView = new ImageView(img);
+                                        imageView.setFitWidth(200);
+                                        imageView.setPreserveRatio(true);
+                                        commentBox.getChildren().add(imageView);
+                                    } catch (Exception e) {
+                                        e.printStackTrace();
+                                    }
+                                }
+
+                                commentBox.setStyle("-fx-background-color: rgba(255,255,255,0.05); -fx-padding: 15; -fx-background-radius: 10;");
+                                commentsBox.getChildren().add(commentBox);
+                            }
+                        } else {
+                            Label noComments = new Label("No comments yet.");
+                            noComments.setStyle("-fx-text-fill: gray; -fx-font-size: 14px;");
+                            commentsBox.getChildren().add(noComments);
+                        }
+                    } else {
+                        loadingCommentsLabel.setText("Failed to load comments.");
+                    }
+                });
+            } catch (Exception ex) {
+                Platform.runLater(() -> loadingCommentsLabel.setText("Error loading comments."));
+            }
+        }).start();
     }
 
     private void submitReview(Movie movie, String reviewText) {
@@ -1601,7 +1751,7 @@ public class HelloApplication extends Application {
                 user.setId(UserSession.getInstance().getUserId());
                 review.setUser(user);
 
-                String jsonBody = new Gson().toJson(review);
+                String jsonBody = gson.toJson(review);
 
                 HttpRequest request = HttpRequest.newBuilder()
                         .uri(URI.create("http://localhost:8080/api/reviews"))
@@ -1623,6 +1773,82 @@ public class HelloApplication extends Application {
         }).start();
     }
 
+    private void submitComment(Movie movie, String commentText, File imageFile) {
+        new Thread(() -> {
+            try {
+                String boundary = "---ContentBoundary" + System.currentTimeMillis();
+                String lineFeed = "\r\n";
+                
+                List<byte[]> multipartBody = new ArrayList<>();
+                
+                // Add movieId
+                addFormField(multipartBody, "movieId", String.valueOf(movie.getId()), boundary, lineFeed);
+                // Add userName
+                addFormField(multipartBody, "userName", UserSession.getInstance().getUsername(), boundary, lineFeed);
+                // Add text
+                addFormField(multipartBody, "text", commentText, boundary, lineFeed);
+                // Add rating (default 0 for now)
+                addFormField(multipartBody, "rating", "0", boundary, lineFeed);
+                
+                // Add image if exists
+                if (imageFile != null) {
+                    addFilePart(multipartBody, "image", imageFile, boundary, lineFeed);
+                }
+                
+                // End boundary
+                multipartBody.add(("--" + boundary + "--" + lineFeed).getBytes(StandardCharsets.UTF_8));
+                
+                // Combine all parts
+                int totalSize = 0;
+                for (byte[] part : multipartBody) {
+                    totalSize += part.length;
+                }
+                byte[] requestBody = new byte[totalSize];
+                int offset = 0;
+                for (byte[] part : multipartBody) {
+                    System.arraycopy(part, 0, requestBody, offset, part.length);
+                    offset += part.length;
+                }
+
+                HttpClient client = HttpClient.newHttpClient();
+                HttpRequest request = HttpRequest.newBuilder()
+                        .uri(URI.create("http://localhost:8080/api/comments/add"))
+                        .header("Content-Type", "multipart/form-data; boundary=" + boundary)
+                        .POST(HttpRequest.BodyPublishers.ofByteArray(requestBody))
+                        .build();
+
+                HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+                if (response.statusCode() == 200) {
+                    Platform.runLater(() -> {
+                        showMovieDetails(movie);
+                    });
+                }
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
+        }).start();
+    }
+
+    private void addFormField(List<byte[]> body, String name, String value, String boundary, String lineFeed) {
+        String header = "--" + boundary + lineFeed +
+                "Content-Disposition: form-data; name=\"" + name + "\"" + lineFeed +
+                lineFeed +
+                value + lineFeed;
+        body.add(header.getBytes(StandardCharsets.UTF_8));
+    }
+
+    private void addFilePart(List<byte[]> body, String fieldName, File uploadFile, String boundary, String lineFeed) throws IOException {
+        String fileName = uploadFile.getName();
+        String header = "--" + boundary + lineFeed +
+                "Content-Disposition: form-data; name=\"" + fieldName + "\"; filename=\"" + fileName + "\"" + lineFeed +
+                "Content-Type: application/octet-stream" + lineFeed +
+                lineFeed;
+        body.add(header.getBytes(StandardCharsets.UTF_8));
+        body.add(Files.readAllBytes(uploadFile.toPath()));
+        body.add(lineFeed.getBytes(StandardCharsets.UTF_8));
+    }
+
     private UserReview getUserReview(Long tmdbId) {
         if (!UserSession.getInstance().isLoggedIn()) {
             return null;
@@ -1635,7 +1861,7 @@ public class HelloApplication extends Application {
             HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
 
             if (response.statusCode() == 200 && response.body() != null && !response.body().isEmpty()) {
-                return new Gson().fromJson(response.body(), UserReview.class);
+                return gson.fromJson(response.body(), UserReview.class);
             }
 
         } catch (Exception ex) {
@@ -1690,7 +1916,6 @@ public class HelloApplication extends Application {
 
                 Platform.runLater(() -> {
                     if (response.statusCode() == 200) {
-                        Gson gson = new Gson();
                         MovieResponse movieResponse = gson.fromJson(response.body(), MovieResponse.class);
 
                         VBox myStarsContent = buildMovieListUI("⭐ My Starred Movies ⭐", movieResponse);
@@ -1742,7 +1967,6 @@ public class HelloApplication extends Application {
 
                 Platform.runLater(() -> {
                     if (response.statusCode() == 200) {
-                        Gson gson = new Gson();
                         MovieResponse movieResponse = gson.fromJson(response.body(), MovieResponse.class);
 
                         VBox suggestionsContent = buildMovieListUI("⭐ Suggested For You ⭐", movieResponse);
@@ -1779,7 +2003,7 @@ public class HelloApplication extends Application {
                 user.setId(UserSession.getInstance().getUserId());
                 star.setUser(user);
 
-                String jsonBody = new Gson().toJson(star);
+                String jsonBody = gson.toJson(star);
 
                 HttpRequest request = HttpRequest.newBuilder()
                         .uri(URI.create("http://localhost:8080/api/v1/stars"))
@@ -1844,7 +2068,6 @@ public class HelloApplication extends Application {
 
                     Platform.runLater(() -> {
                         if (response.statusCode() == 200) {
-                            Gson gson = new Gson();
                             MovieResponse movieResponse = gson.fromJson(response.body(), MovieResponse.class);
                             if (movieResponse != null && movieResponse.results != null && movieResponse.results.size() >= 3) {
                                 personalBtn.setDisable(false);
