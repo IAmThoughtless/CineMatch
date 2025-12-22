@@ -1345,17 +1345,24 @@ public class HelloApplication extends Application {
     }
 
     private void showMovieDetails(Movie initialMovieData) {
+        // 1. Δήλωση των UI Containers που πρέπει να ενημερωθούν αργότερα
+        final VBox castSection = new VBox(10);
+        final VBox userReviewsBox = new VBox(10);
+        final VBox reviewsContainer = new VBox(15);
+        final Label loadingReviewsLabel = new Label("Loading details & reviews...");
+        final Label metaLabel = new Label();
+        final Label moneyLabel = new Label();
+        final TextArea reviewTextArea = new TextArea();
 
+        // Κουμπί επιστροφής
         Button backBtn = new Button("⬅ Back");
         backBtn.setStyle("-fx-background-color: transparent; -fx-text-fill: #E50914; -fx-font-size: 16px; -fx-font-weight: bold; -fx-cursor: hand;");
         backBtn.setOnAction(e -> {
-            if (lastMovieListView != null) {
-                root.setCenter(lastMovieListView);
-            } else {
-                showHomeView();
-            }
+            if (lastMovieListView != null) root.setCenter(lastMovieListView);
+            else showHomeView();
         });
 
+        // --- Βασικά Στοιχεία (Poster, Title, Overview) ---
         ImageView posterView = createPosterImageView(initialMovieData.getPoster_path());
         posterView.setFitWidth(300);
         posterView.setFitHeight(450);
@@ -1364,223 +1371,147 @@ public class HelloApplication extends Application {
         titleLabel.setStyle("-fx-text-fill: white; -fx-font-size: 36px; -fx-font-weight: bold;");
         titleLabel.setWrapText(true);
 
+        // Αρχικό Setup (Date & Rating)
         String date = (initialMovieData.getRelease_date() != null && !initialMovieData.getRelease_date().isEmpty()) ? initialMovieData.getRelease_date() : "N/A";
-        Label metaLabel = new Label("📅 " + date + "  |  ⭐ " + initialMovieData.getVote_average() + "/10 (" + initialMovieData.getVote_count() + " votes)");
+        metaLabel.setText(String.format("📅 %s  |  ⭐ %.1f/10", date, initialMovieData.getVote_average()));
         metaLabel.setStyle("-fx-text-fill: #cccccc; -fx-font-size: 16px;");
 
-        String overviewText = (initialMovieData.getOverview() != null && !initialMovieData.getOverview().isEmpty()) ? initialMovieData.getOverview() : "Δεν υπάρχει διαθέσιμη περιγραφή.";
-        Label overviewLabel = new Label(overviewText);
+        moneyLabel.setStyle("-fx-text-fill: #27ae60; -fx-font-size: 14px; -fx-font-weight: bold;");
+
+        Label overviewLabel = new Label(initialMovieData.getOverview() != null ? initialMovieData.getOverview() : "No description available.");
         overviewLabel.setStyle("-fx-text-fill: white; -fx-font-size: 18px;");
         overviewLabel.setWrapText(true);
         overviewLabel.setMaxWidth(600);
 
+        // --- Star Button Logic ---
         Button starBtn = new Button("Loading...");
         starBtn.setDisable(true);
-
         if (UserSession.getInstance().isLoggedIn()) {
             new Thread(() -> {
                 boolean isStarred = isMovieStarred(initialMovieData.getId());
                 Platform.runLater(() -> {
                     starBtn.setDisable(false);
-                    if (isStarred) {
-                        setupUnstarButton(starBtn, initialMovieData);
-                    } else {
-                        setupStarButton(starBtn, initialMovieData);
-                    }
+                    if (isStarred) setupUnstarButton(starBtn, initialMovieData);
+                    else setupStarButton(starBtn, initialMovieData);
                 });
             }).start();
         } else {
             starBtn.setText("⭐ Star Movie");
             starBtn.setStyle("-fx-background-color: #E50914; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: 5;");
             starBtn.setDisable(false);
-            starBtn.setOnAction(ev -> showLoginView());
+            starBtn.setOnAction(e -> showLoginView());
         }
 
-        VBox infoBox = new VBox(20, titleLabel, metaLabel, overviewLabel, starBtn);
-        infoBox.setAlignment(Pos.CENTER_LEFT);
-
-        HBox topContent = new HBox(40, posterView, infoBox);
-        topContent.setAlignment(Pos.CENTER);
-        topContent.setPadding(new Insets(0, 0, 40, 0));
-
-        // REVIEWS SECTION
-        VBox reviewsContainer = new VBox(15);
-        reviewsContainer.setAlignment(Pos.TOP_LEFT);
+        // --- Reviews Section Setup ---
         reviewsContainer.setMaxWidth(800);
-
         Label reviewsHeader = new Label("User Reviews");
         reviewsHeader.setStyle("-fx-text-fill: #E50914; -fx-font-size: 24px; -fx-font-weight: bold;");
-
-        VBox userReviewsBox = new VBox(10);
-        userReviewsBox.setAlignment(Pos.TOP_LEFT);
-
-        Label loadingReviewsLabel = new Label("Loading reviews...");
         loadingReviewsLabel.setStyle("-fx-text-fill: gray; -fx-font-style: italic;");
-
         reviewsContainer.getChildren().addAll(reviewsHeader, userReviewsBox, loadingReviewsLabel);
 
+        reviewTextArea.setWrapText(true);
+        reviewTextArea.setPrefHeight(100);
+        reviewTextArea.setStyle("-fx-control-inner-background:#333; -fx-text-fill: white; -fx-background-radius: 5;");
+
+        Button submitReviewBtn = new Button("Submit Review");
+        submitReviewBtn.setStyle("-fx-background-color: #E50914; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 5;");
+
         if (UserSession.getInstance().isLoggedIn()) {
-            TextArea reviewTextArea = new TextArea();
             reviewTextArea.setPromptText("Write your review here...");
-            reviewTextArea.setWrapText(true);
-            reviewTextArea.setPrefHeight(100);
-            reviewTextArea.setStyle("-fx-control-inner-background:#333; -fx-prompt-text-fill: white; -fx-text-fill: white; -fx-background-radius: 5;");
-
-            Button submitReviewBtn = new Button("Submit Review");
-            submitReviewBtn.setStyle("-fx-background-color: #E50914; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: 5;");
-
+            new Thread(() -> {
+                UserReview ur = getUserReview(initialMovieData.getId());
+                if (ur != null) Platform.runLater(() -> reviewTextArea.setText(ur.getReviewText()));
+            }).start();
             submitReviewBtn.setOnAction(e -> {
-                String reviewText = reviewTextArea.getText();
-                if (reviewText != null && !reviewText.trim().isEmpty()) {
-                    submitReview(initialMovieData, reviewText);
+                if (!reviewTextArea.getText().trim().isEmpty()) {
+                    submitReview(initialMovieData, reviewTextArea.getText());
                 }
             });
-            VBox addReviewBox = new VBox(10, new Label("Add Your Review"), reviewTextArea, submitReviewBtn);
-            addReviewBox.setAlignment(Pos.TOP_LEFT);
-            reviewsContainer.getChildren().add(addReviewBox);
         } else {
-            TextArea reviewTextArea = new TextArea();
+            reviewTextArea.setEditable(false);
             reviewTextArea.setPromptText("Login or register to write a review");
-            reviewTextArea.setWrapText(true);
-            reviewTextArea.setPrefHeight(100);
-            reviewTextArea.setEditable(false); // Make it non-editable
-            reviewTextArea.setStyle("-fx-control-inner-background:#333; -fx-prompt-text-fill: white; -fx-background-radius: 5;");
-            reviewTextArea.setOnMouseClicked(e -> showLoginView()); // Redirect to login on click
-
-            Button submitReviewBtn = new Button("Submit Review");
-            submitReviewBtn.setStyle("-fx-background-color: #E50914; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: 5;");
-            submitReviewBtn.setOnAction(e -> showLoginView()); // Redirect to login on button click
-
-            VBox addReviewBox = new VBox(10, new Label("Add Your Review"), reviewTextArea, submitReviewBtn);
-            addReviewBox.setAlignment(Pos.TOP_LEFT);
-            reviewsContainer.getChildren().add(addReviewBox);
+            submitReviewBtn.setOnAction(e -> showLoginView());
         }
-        
+        reviewsContainer.getChildren().addAll(new Label("Add Your Review"), reviewTextArea, submitReviewBtn);
+
+        // --- Layout Assembly ---
+        VBox infoBox = new VBox(20, titleLabel, metaLabel, moneyLabel, overviewLabel, castSection, starBtn);
+        HBox topContent = new HBox(40, posterView, infoBox);
+        topContent.setPadding(new Insets(0, 0, 40, 0));
 
         VBox mainContent = new VBox(20, topContent, reviewsContainer);
-        mainContent.setAlignment(Pos.TOP_CENTER);
         mainContent.setPadding(new Insets(40));
 
         ScrollPane scrollPane = new ScrollPane(mainContent);
         scrollPane.setFitToWidth(true);
         scrollPane.setStyle("-fx-background: transparent; -fx-background-color: transparent;");
-        scrollPane.setPannable(true);
 
-        VBox finalLayout = new VBox(20, backBtn, scrollPane);
-        finalLayout.setPadding(new Insets(20));
+        root.setCenter(new VBox(10, backBtn, scrollPane));
 
-        root.setCenter(finalLayout);
-
-
+        // --- Background Thread: Fetch Full Details (Cast, Budget, Revenue, Reviews) ---
         new Thread(() -> {
             try (HttpClient client = HttpClient.newHttpClient()) {
                 HttpRequest request = HttpRequest.newBuilder()
                         .uri(URI.create("http://localhost:8080/api/movie/" + initialMovieData.getId()))
-                        .header("Content-Type", "application/json")
-                        .GET()
-                        .build();
-
+                        .GET().build();
                 HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
 
-                Platform.runLater(() -> {
-                    if (response.statusCode() == 200) {
-                        Gson gson = new Gson();
-                        MovieWithReviews movieWithReviews = gson.fromJson(response.body(), MovieWithReviews.class);
-                        Movie fullMovie = movieWithReviews.getMovie();
-                        java.util.List<UserReview> userReviews = movieWithReviews.getUserReviews();
+                if (response.statusCode() == 200) {
+                    Gson gson = new Gson();
+                    MovieWithReviews mwr = gson.fromJson(response.body(), MovieWithReviews.class);
+                    Movie fullMovie = mwr.getMovie();
 
+                    Platform.runLater(() -> {
+                        // 1. Update Meta & Money
+                        metaLabel.setText(String.format("📅 %s  |  ⭐ %.1f/10  |  ⏳ %d min",
+                                fullMovie.getRelease_date(), fullMovie.getVote_average(), fullMovie.getRuntime()));
+
+                        String rev = (fullMovie.getRevenue() > 0) ? String.format("%,d $", fullMovie.getRevenue()) : "N/A";
+                        String bud = (fullMovie.getBudget() > 0) ? String.format("%,d $", fullMovie.getBudget()) : "N/A";
+                        moneyLabel.setText(String.format("💰 Budget: %s  |  💵 Revenue: %s", bud, rev));
+
+                        // 2. Update Cast Section (Εδώ γίνεται η ανανέωση!)
+                        if (fullMovie.getCredits() != null && fullMovie.getCredits().getCast() != null) {
+                            castSection.getChildren().clear();
+                            Label castHeader = new Label("Top Cast");
+                            castHeader.setStyle("-fx-text-fill: #E50914; -fx-font-size: 20px; -fx-font-weight: bold;");
+
+                            HBox castContainer = new HBox(20);
+                            fullMovie.getCredits().getCast().stream().limit(5).forEach(member -> {
+                                VBox actorBox = new VBox(2);
+                                Label name = new Label(member.getName());
+                                name.setStyle("-fx-text-fill: white; -fx-font-weight: bold;");
+                                Label character = new Label(member.getCharacter());
+                                character.setStyle("-fx-text-fill: #888; -fx-font-size: 11px;");
+                                actorBox.getChildren().addAll(name, character);
+                                castContainer.getChildren().add(actorBox);
+                            });
+                            castSection.getChildren().addAll(castHeader, castContainer);
+                        }
+
+                        // 3. Update Reviews
                         reviewsContainer.getChildren().remove(loadingReviewsLabel);
-
-                        // Display User Reviews
                         userReviewsBox.getChildren().clear();
-                        if (userReviews != null && !userReviews.isEmpty()) {
-                            for (UserReview review : userReviews) {
-                                Label authorLabel = new Label("👤 " + review.getUser().getUsername());
-                                authorLabel.setStyle("-fx-text-fill: #cccccc; -fx-font-weight: bold; -fx-font-size: 14px;");
 
-                                Label contentLabel = new Label(review.getReviewText());
-                                contentLabel.setStyle("-fx-text-fill: white; -fx-font-size: 14px;");
-                                contentLabel.setWrapText(true);
-                                contentLabel.setMaxWidth(750);
-                                
-                                Label dateLabel = new Label("Created at: " + new java.text.SimpleDateFormat("dd/MM/yyyy HH:mm:ss").format(review.getCreatedAt()));
-                                dateLabel.setStyle("-fx-text-fill: #cccccc; -fx-font-size: 12px;");
-
-                                VBox reviewBox = new VBox(5, authorLabel, contentLabel, dateLabel);
-                                reviewBox.setStyle("-fx-background-color: rgba(255,255,255,0.05); -fx-padding: 15; -fx-background-radius: 10;");
-                                userReviewsBox.getChildren().add(reviewBox);
+                        if (mwr.getUserReviews() != null) {
+                            for (UserReview ur : mwr.getUserReviews()) {
+                                VBox rb = new VBox(5, new Label("👤 " + ur.getUser().getUsername()), new Label(ur.getReviewText()));
+                                rb.setStyle("-fx-background-color: rgba(255,255,255,0.05); -fx-padding: 10; -fx-background-radius: 5;");
+                                userReviewsBox.getChildren().add(rb);
                             }
-                        } else {
-                            Label noReviews = new Label("No user reviews yet.");
-                            noReviews.setStyle("-fx-text-fill: gray; -fx-font-size: 14px;");
-                            userReviewsBox.getChildren().add(noReviews);
                         }
 
-
-                        if (fullMovie.getReviews() != null && fullMovie.getReviews().getResults() != null && !fullMovie.getReviews().getResults().isEmpty()) {
-
-
-                            for (Review review : fullMovie.getReviews().getResults()) {
-                                Label authorLabel = new Label("👤 " + review.getAuthor());
-                                authorLabel.setStyle("-fx-text-fill: #cccccc; -fx-font-weight: bold; -fx-font-size: 14px;");
-
-                                Label contentLabel = new Label();
-                                contentLabel.setStyle("-fx-text-fill: white; -fx-font-size: 14px;");
-                                contentLabel.setWrapText(true);
-                                contentLabel.setMaxWidth(750); // Σιγουρέψου ότι αυτό χωράει στο UI σου
-
-                                VBox reviewBox = new VBox(5);
-                                reviewBox.setStyle("-fx-background-color: rgba(255,255,255,0.05); -fx-padding: 15; -fx-background-radius: 10;");
-
-
-                                int MAX_LENGTH = 400;
-
-                                if (review.getContent().length() > MAX_LENGTH) {
-                                    String fullText = review.getContent();
-                                    String truncatedText = review.getContent().substring(0, MAX_LENGTH) + "...";
-
-
-                                    contentLabel.setText(truncatedText);
-
-
-                                    javafx.scene.control.Hyperlink expandLink = new javafx.scene.control.Hyperlink("Read More ⬇");
-                                    expandLink.setStyle("-fx-text-fill: #E50914; -fx-border-color: transparent; -fx-font-weight: bold;");
-
-
-                                    expandLink.setOnAction(e -> {
-                                        if (expandLink.getText().equals("Read More ⬇")) {
-
-                                            contentLabel.setText(fullText);
-                                            expandLink.setText("Read Less ⬆");
-                                        } else {
-
-                                            contentLabel.setText(truncatedText);
-                                            expandLink.setText("Read More ⬇");
-                                        }
-                                    });
-
-                                    reviewBox.getChildren().addAll(authorLabel, contentLabel, expandLink);
-                                } else {
-
-                                    contentLabel.setText(review.getContent());
-                                    reviewBox.getChildren().addAll(authorLabel, contentLabel);
-                                }
-
-                                reviewsContainer.getChildren().add(reviewBox);
+                        if (fullMovie.getReviews() != null && fullMovie.getReviews().getResults() != null) {
+                            for (Review r : fullMovie.getReviews().getResults()) {
+                                VBox rb = new VBox(5, new Label("👤 " + r.getAuthor()), new Label(r.getContent()));
+                                rb.setStyle("-fx-background-color: rgba(255,255,255,0.1); -fx-padding: 10; -fx-background-radius: 5;");
+                                userReviewsBox.getChildren().add(rb);
                             }
-
-                        } else {
-                            Label noReviews = new Label("No reviews found for this movie.");
-                            noReviews.setStyle("-fx-text-fill: gray; -fx-font-size: 14px;");
-                            reviewsContainer.getChildren().add(noReviews);
                         }
-                    } else {
-                        loadingReviewsLabel.setText("Failed to load reviews.");
-                    }
-                });
-
+                    });
+                }
             } catch (Exception ex) {
-                Platform.runLater(() -> loadingReviewsLabel.setText("Error loading reviews."));
+                Platform.runLater(() -> loadingReviewsLabel.setText("Failed to load full details."));
             }
         }).start();
     }

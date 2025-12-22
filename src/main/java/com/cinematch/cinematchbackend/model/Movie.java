@@ -2,6 +2,7 @@ package com.cinematch.cinematchbackend.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.gson.annotations.SerializedName;
 import lombok.Data;
 import java.util.List;
 
@@ -35,8 +36,40 @@ public class Movie {
     @JsonProperty("vote_count")
     private int vote_count;
 
+    @JsonProperty("budget")
+    private long budget;
+
+    @JsonProperty("revenue")
+    private long revenue;
+
+    @JsonProperty("runtime")
+    private int runtime;
+
+    @JsonProperty("credits")
+    private CreditsContainer credits;
+
     @JsonProperty("reviews")
     private ReviewsContainer reviews;
+
+    @Data
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public static class CreditsContainer {
+        @JsonProperty("cast")
+        private List<CastMember> cast;
+    }
+
+    @Data
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public static class CastMember {
+        @JsonProperty("name")
+        private String name;
+
+        @JsonProperty("character")
+        private String character;
+
+        @JsonProperty("profile_path")
+        private String profilePath;
+    }
 
     @Data
     public static class ReviewsContainer {
