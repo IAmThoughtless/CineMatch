@@ -85,8 +85,9 @@ public class MovieService {
     }
 
     public Movie getMovieDetails(Long movieId) {
+        Movie movie = null;
         try {
-            String url = "https://api.themoviedb.org/3/movie/" + movieId + "?api_key=" + tmdbApiKey + "&append_to_response=reviews";
+            String url = "https://api.themoviedb.org/3/movie/" + movieId + "?api_key=" + tmdbApiKey + "&append_to_response=reviews,credits";
 
             try (HttpClient client = HttpClient.newHttpClient()) {
                 HttpRequest request = HttpRequest.newBuilder()
@@ -101,13 +102,25 @@ public class MovieService {
                 }
 
                 Gson gson = new Gson();
-                return gson.fromJson(response.body(), Movie.class);
+                movie = gson.fromJson(response.body(), Movie.class);
+
+                com.google.gson.JsonObject jsonObject = gson.fromJson(response.body(), com.google.gson.JsonObject.class);
+                if (jsonObject.has("credits")) {
+                    com.google.gson.JsonObject credits = jsonObject.getAsJsonObject("credits");
+                    if (credits.has("cast")) {
+                        java.lang.reflect.Type listType = new com.google.gson.reflect.TypeToken<List<Movie.CastMember>>(){}.getType();
+                        List<Movie.CastMember> castList = gson.fromJson(credits.get("cast"), listType);
+                        movie.setCast(castList);
+                    }
+                }
+
             }
 
         } catch (Exception e) {
             System.err.println("Error during search: " + e.getMessage());
             return null;
         }
+        return movie;
     }
 
     public MovieResponse fetchWhatsHot() {

@@ -21,6 +21,7 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
+import javafx.scene.control.Hyperlink;
 import javafx.scene.effect.DropShadow;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
@@ -31,6 +32,7 @@ import javafx.scene.text.FontWeight;
 import javafx.scene.text.TextAlignment;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
+import javafx.stage.Modality;
 import javafx.util.Duration;
 import javafx.scene.input.KeyCode;
 
@@ -1386,7 +1388,7 @@ public class HelloApplication extends Application {
     private File selectedImageFile;
 
     private void showMovieDetails(Movie initialMovieData) {
-
+        // 1. Header & Back Button
         Button backBtn = new Button("⬅ Back");
         backBtn.setStyle("-fx-background-color: transparent; -fx-text-fill: #E50914; -fx-font-size: 16px; -fx-font-weight: bold; -fx-cursor: hand;");
         backBtn.setOnAction(e -> {
@@ -1397,6 +1399,7 @@ public class HelloApplication extends Application {
             }
         });
 
+        // 2. Poster & Basic Info
         ImageView posterView = createPosterImageView(initialMovieData.getPoster_path());
         posterView.setFitWidth(300);
         posterView.setFitHeight(450);
@@ -1409,25 +1412,46 @@ public class HelloApplication extends Application {
         Label metaLabel = new Label("📅 " + date + "  |  ⭐ " + initialMovieData.getVote_average() + "/10 (" + initialMovieData.getVote_count() + " votes)");
         metaLabel.setStyle("-fx-text-fill: #cccccc; -fx-font-size: 16px;");
 
-        String overviewText = (initialMovieData.getOverview() != null && !initialMovieData.getOverview().isEmpty()) ? initialMovieData.getOverview() : "Δεν υπάρχει διαθέσιμη περιγραφή.";
-        Label overviewLabel = new Label(overviewText);
-        overviewLabel.setStyle("-fx-text-fill: white; -fx-font-size: 18px;");
-        overviewLabel.setWrapText(true);
-        overviewLabel.setMaxWidth(600);
+        // Facts Container
+        GridPane factsGrid = new GridPane();
+        factsGrid.setHgap(30); factsGrid.setVgap(10);
+        factsGrid.setPadding(new Insets(10, 0, 10, 0));
 
+        // Cast Section
+        VBox castSection = new VBox(15);
+        Label castHeader = new Label("Top Cast");
+        castHeader.setStyle("-fx-text-fill: #E50914; -fx-font-size: 24px; -fx-font-weight: bold;");
+        HBox castBox = new HBox(15);
+        castBox.setPadding(new Insets(10));
+        ScrollPane castScroll = new ScrollPane(castBox);
+        castScroll.setFitToHeight(true);
+        castScroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
+        castScroll.setStyle("-fx-background: transparent; -fx-background-color: transparent; -fx-border-color: transparent;");
+        castScroll.setPrefWidth(850);
+
+        Button leftArrow = createScrollButton("<");
+        Button rightArrow = createScrollButton(">");
+        leftArrow.setOnAction(e -> new Timeline(new KeyFrame(Duration.millis(300), new KeyValue(castScroll.hvalueProperty(), Math.max(0, castScroll.getHvalue() - 0.25)))).play());
+        rightArrow.setOnAction(e -> new Timeline(new KeyFrame(Duration.millis(300), new KeyValue(castScroll.hvalueProperty(), Math.min(1, castScroll.getHvalue() + 0.25)))).play());
+
+        HBox castWithArrows = new HBox(10, leftArrow, castScroll, rightArrow);
+        castWithArrows.setAlignment(Pos.CENTER);
+        castSection.getChildren().addAll(castHeader, castWithArrows);
+
+        Label overviewLabel = new Label(initialMovieData.getOverview());
+        overviewLabel.setStyle("-fx-text-fill: white; -fx-font-size: 18px;");
+        overviewLabel.setWrapText(true); overviewLabel.setMaxWidth(600);
+
+        // Star Button
         Button starBtn = new Button("Loading...");
         starBtn.setDisable(true);
-
         if (UserSession.getInstance().isLoggedIn()) {
             new Thread(() -> {
                 boolean isStarred = isMovieStarred(initialMovieData.getId());
                 Platform.runLater(() -> {
                     starBtn.setDisable(false);
-                    if (isStarred) {
-                        setupUnstarButton(starBtn, initialMovieData);
-                    } else {
-                        setupStarButton(starBtn, initialMovieData);
-                    }
+                    if (isStarred) setupUnstarButton(starBtn, initialMovieData);
+                    else setupStarButton(starBtn, initialMovieData);
                 });
             }).start();
         } else {
@@ -1437,308 +1461,244 @@ public class HelloApplication extends Application {
             starBtn.setOnAction(ev -> showLoginView());
         }
 
-        VBox infoBox = new VBox(20, titleLabel, metaLabel, overviewLabel, starBtn);
+        VBox infoBox = new VBox(20, titleLabel, metaLabel, factsGrid, overviewLabel, starBtn);
         infoBox.setAlignment(Pos.CENTER_LEFT);
-
         HBox topContent = new HBox(40, posterView, infoBox);
         topContent.setAlignment(Pos.CENTER);
         topContent.setPadding(new Insets(0, 0, 40, 0));
 
-        // REVIEWS SECTION
+        // REVIEWS & COMMENTS CONTAINERS
         VBox reviewsContainer = new VBox(15);
-        reviewsContainer.setAlignment(Pos.TOP_LEFT);
-        reviewsContainer.setMaxWidth(800);
-
+        reviewsContainer.setAlignment(Pos.TOP_LEFT); reviewsContainer.setMaxWidth(800);
         Label reviewsHeader = new Label("User Reviews");
         reviewsHeader.setStyle("-fx-text-fill: #E50914; -fx-font-size: 24px; -fx-font-weight: bold;");
-
         VBox userReviewsBox = new VBox(10);
-        userReviewsBox.setAlignment(Pos.TOP_LEFT);
-
-        Label loadingReviewsLabel = new Label("Loading reviews...");
+        Label loadingReviewsLabel = new Label("Loading details & reviews...");
         loadingReviewsLabel.setStyle("-fx-text-fill: gray; -fx-font-style: italic;");
-
         reviewsContainer.getChildren().addAll(reviewsHeader, userReviewsBox, loadingReviewsLabel);
 
-        // COMMENTS SECTION
         VBox commentsContainer = new VBox(15);
-        commentsContainer.setAlignment(Pos.TOP_LEFT);
-        commentsContainer.setMaxWidth(800);
-
+        commentsContainer.setAlignment(Pos.TOP_LEFT); commentsContainer.setMaxWidth(800);
         Label commentsHeader = new Label("Comments");
         commentsHeader.setStyle("-fx-text-fill: #E50914; -fx-font-size: 24px; -fx-font-weight: bold;");
-
         VBox commentsBox = new VBox(10);
-        commentsBox.setAlignment(Pos.TOP_LEFT);
-
         Label loadingCommentsLabel = new Label("Loading comments...");
         loadingCommentsLabel.setStyle("-fx-text-fill: gray; -fx-font-style: italic;");
-
         commentsContainer.getChildren().addAll(commentsHeader, commentsBox, loadingCommentsLabel);
 
+        // Comment Input
         if (UserSession.getInstance().isLoggedIn()) {
-            // Add Comment Section
             TextArea commentTextArea = new TextArea();
             commentTextArea.setPromptText("Write your comment here...");
-            commentTextArea.setWrapText(true);
-            commentTextArea.setPrefHeight(100);
+            commentTextArea.setWrapText(true); commentTextArea.setPrefHeight(100);
             commentTextArea.setStyle("-fx-control-inner-background:#333; -fx-prompt-text-fill: white; -fx-text-fill: white; -fx-background-radius: 5;");
-
             Button uploadImageBtn = new Button("Upload Image");
             Label selectedImageLabel = new Label("No image selected");
             selectedImageLabel.setStyle("-fx-text-fill: #cccccc;");
-
             uploadImageBtn.setOnAction(e -> {
-                FileChooser fileChooser = new FileChooser();
-                fileChooser.setTitle("Select Image");
-                fileChooser.getExtensionFilters().addAll(
-                        new FileChooser.ExtensionFilter("Image Files", "*.png", "*.jpg", "*.jpeg", "*.gif")
-                );
-                File file = fileChooser.showOpenDialog(root.getScene().getWindow());
-                if (file != null) {
-                    selectedImageFile = file;
-                    selectedImageLabel.setText(file.getName());
-                }
+                FileChooser fc = new FileChooser();
+                fc.getExtensionFilters().add(new FileChooser.ExtensionFilter("Images", "*.png", "*.jpg", "*.jpeg", "*.gif"));
+                File file = fc.showOpenDialog(root.getScene().getWindow());
+                if (file != null) { selectedImageFile = file; selectedImageLabel.setText(file.getName()); }
             });
-
             Button submitCommentBtn = new Button("Submit Comment");
             submitCommentBtn.setStyle("-fx-background-color: #E50914; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: 5;");
-
             submitCommentBtn.setOnAction(e -> {
-                String commentText = commentTextArea.getText();
-                if (commentText != null && !commentText.trim().isEmpty()) {
-                    submitComment(initialMovieData, commentText, selectedImageFile);
-                    selectedImageFile = null; // Reset after submission
-                    selectedImageLabel.setText("No image selected");
-                    commentTextArea.clear();
+                String text = commentTextArea.getText();
+                if (text != null && !text.trim().isEmpty()) {
+                    submitComment(initialMovieData, text, selectedImageFile);
+                    selectedImageFile = null; selectedImageLabel.setText("No image selected"); commentTextArea.clear();
                 }
             });
-
-            HBox imageUploadBox = new HBox(10, uploadImageBtn, selectedImageLabel);
-            imageUploadBox.setAlignment(Pos.CENTER_LEFT);
-
-            VBox addCommentBox = new VBox(10, new Label("Add Your Comment"), commentTextArea, imageUploadBox, submitCommentBtn);
-            addCommentBox.setAlignment(Pos.TOP_LEFT);
-            commentsContainer.getChildren().add(addCommentBox);
-
-        } else {
-            // Comment Section for non-logged in users
-            TextArea commentTextArea = new TextArea();
-            commentTextArea.setPromptText("Login or register to write a comment");
-            commentTextArea.setWrapText(true);
-            commentTextArea.setPrefHeight(100);
-            commentTextArea.setEditable(false);
-            commentTextArea.setStyle("-fx-control-inner-background:#333; -fx-prompt-text-fill: white; -fx-background-radius: 5;");
-            commentTextArea.setOnMouseClicked(e -> showLoginView());
-
-            Button submitCommentBtn = new Button("Submit Comment");
-            submitCommentBtn.setStyle("-fx-background-color: #E50914; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: 5;");
-            submitCommentBtn.setOnAction(e -> showLoginView());
-
-            VBox addCommentBox = new VBox(10, new Label("Add Your Comment"), commentTextArea, submitCommentBtn);
-            addCommentBox.setAlignment(Pos.TOP_LEFT);
-            commentsContainer.getChildren().add(addCommentBox);
+            HBox imgBox = new HBox(10, uploadImageBtn, selectedImageLabel); imgBox.setAlignment(Pos.CENTER_LEFT);
+            commentsContainer.getChildren().add(new VBox(10, new Label("Add Your Comment"), commentTextArea, imgBox, submitCommentBtn));
         }
-        
 
-        VBox mainContent = new VBox(20, topContent, reviewsContainer, commentsContainer);
-        mainContent.setAlignment(Pos.TOP_CENTER);
-        mainContent.setPadding(new Insets(40));
-
+        VBox mainContent = new VBox(30, topContent);
+        mainContent.setAlignment(Pos.TOP_CENTER); mainContent.setPadding(new Insets(40));
         ScrollPane scrollPane = new ScrollPane(mainContent);
-        scrollPane.setFitToWidth(true);
-        scrollPane.setStyle("-fx-background: transparent; -fx-background-color: transparent;");
-        scrollPane.setPannable(true);
+        scrollPane.setFitToWidth(true); scrollPane.setStyle("-fx-background: transparent; -fx-background-color: transparent;");
 
-        VBox finalLayout = new VBox(20, backBtn, scrollPane);
-        finalLayout.setPadding(new Insets(20));
+        root.setCenter(new VBox(20, backBtn, scrollPane));
 
-        root.setCenter(finalLayout);
-
-
+        // --- API LOADING (MOVIE DETAILS & REVIEWS) ---
         new Thread(() -> {
             try (HttpClient client = HttpClient.newHttpClient()) {
-                HttpRequest request = HttpRequest.newBuilder()
-                        .uri(URI.create("http://localhost:8080/api/movie/" + initialMovieData.getId()))
-                        .header("Content-Type", "application/json")
-                        .GET()
-                        .build();
-
+                HttpRequest request = HttpRequest.newBuilder().uri(URI.create("http://localhost:8080/api/movie/" + initialMovieData.getId())).GET().build();
                 HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-
                 Platform.runLater(() -> {
                     if (response.statusCode() == 200) {
                         MovieWithReviews movieWithReviews = gson.fromJson(response.body(), MovieWithReviews.class);
                         Movie fullMovie = movieWithReviews.getMovie();
-                        java.util.List<UserReview> userReviews = movieWithReviews.getUserReviews();
+
+                        factsGrid.getChildren().clear();
+                        if (fullMovie.getBudget() > 0) factsGrid.add(createFactBox("Budget", String.format("$%,d", fullMovie.getBudget())), 0, 0);
+                        if (fullMovie.getRevenue() > 0) factsGrid.add(createFactBox("Revenue", String.format("$%,d", fullMovie.getRevenue())), 1, 0);
+                        if (fullMovie.getRuntime() > 0) factsGrid.add(createFactBox("Runtime", fullMovie.getRuntime() + " min"), 0, 1);
+
+                        castBox.getChildren().clear();
+                        if (fullMovie.getCast() != null) {
+                            for (Movie.CastMember actor : fullMovie.getCast()) castBox.getChildren().add(createActorCard(actor));
+                            if (!mainContent.getChildren().contains(castSection)) mainContent.getChildren().add(1, castSection);
+                        }
 
                         reviewsContainer.getChildren().remove(loadingReviewsLabel);
-
-                        // Display User Reviews
                         userReviewsBox.getChildren().clear();
-                        if (userReviews != null && !userReviews.isEmpty()) {
-                            for (UserReview review : userReviews) {
-                                Label authorLabel = new Label("👤 " + review.getUser().getUsername());
-                                authorLabel.setStyle("-fx-text-fill: #cccccc; -fx-font-weight: bold; -fx-font-size: 14px;");
 
-                                Label contentLabel = new Label(review.getReviewText());
-                                contentLabel.setStyle("-fx-text-fill: white; -fx-font-size: 14px;");
-                                contentLabel.setWrapText(true);
-                                contentLabel.setMaxWidth(750);
-                                
-                                Label dateLabel = new Label("Created at: " + new java.text.SimpleDateFormat("dd/MM/yyyy HH:mm:ss").format(review.getCreatedAt()));
-                                dateLabel.setStyle("-fx-text-fill: #cccccc; -fx-font-size: 12px;");
+                        // Λογική Read More για TMDB Reviews
+                        if (fullMovie.getReviews() != null && fullMovie.getReviews().getResults() != null) {
+                            for (Review r : fullMovie.getReviews().getResults()) {
+                                VBox rb = new VBox(5);
+                                rb.setStyle("-fx-background-color: rgba(255,255,255,0.05); -fx-padding: 15; -fx-background-radius: 10;");
+                                rb.setMaxWidth(750);
+                                Label auth = new Label("👤 " + r.getAuthor());
+                                auth.setStyle("-fx-text-fill: #ccc; -fx-font-weight: bold;");
+                                Label cont = new Label();
+                                cont.setStyle("-fx-text-fill: white;");
+                                cont.setWrapText(true); cont.setMaxWidth(720);
 
-                                VBox reviewBox = new VBox(5, authorLabel, contentLabel, dateLabel);
-
-                                if (review.getImage() != null && review.getImage().length > 0) {
-                                    try {
-                                        Image img = new Image(new ByteArrayInputStream(review.getImage()));
-                                        ImageView imageView = new ImageView(img);
-                                        imageView.setFitWidth(200);
-                                        imageView.setPreserveRatio(true);
-                                        reviewBox.getChildren().add(imageView);
-                                    } catch (Exception e) {
-                                        e.printStackTrace();
-                                    }
-                                }
-
-                                reviewBox.setStyle("-fx-background-color: rgba(255,255,255,0.05); -fx-padding: 15; -fx-background-radius: 10;");
-                                userReviewsBox.getChildren().add(reviewBox);
-                            }
-                        } else {
-                            Label noReviews = new Label("No user reviews yet.");
-                            noReviews.setStyle("-fx-text-fill: gray; -fx-font-size: 14px;");
-                            userReviewsBox.getChildren().add(noReviews);
-                        }
-
-
-                        if (fullMovie.getReviews() != null && fullMovie.getReviews().getResults() != null && !fullMovie.getReviews().getResults().isEmpty()) {
-
-
-                            for (Review review : fullMovie.getReviews().getResults()) {
-                                Label authorLabel = new Label("👤 " + review.getAuthor());
-                                authorLabel.setStyle("-fx-text-fill: #cccccc; -fx-font-weight: bold; -fx-font-size: 14px;");
-
-                                Label contentLabel = new Label();
-                                contentLabel.setStyle("-fx-text-fill: white; -fx-font-size: 14px;");
-                                contentLabel.setWrapText(true);
-                                contentLabel.setMaxWidth(750); // Σιγουρέψου ότι αυτό χωράει στο UI σου
-
-                                VBox reviewBox = new VBox(5);
-                                reviewBox.setStyle("-fx-background-color: rgba(255,255,255,0.05); -fx-padding: 15; -fx-background-radius: 10;");
-
-
-                                int MAX_LENGTH = 400;
-
-                                if (review.getContent().length() > MAX_LENGTH) {
-                                    String fullText = review.getContent();
-                                    String truncatedText = review.getContent().substring(0, MAX_LENGTH) + "...";
-
-
-                                    contentLabel.setText(truncatedText);
-
-
-                                    javafx.scene.control.Hyperlink expandLink = new javafx.scene.control.Hyperlink("Read More ⬇");
-                                    expandLink.setStyle("-fx-text-fill: #E50914; -fx-border-color: transparent; -fx-font-weight: bold;");
-
-
-                                    expandLink.setOnAction(e -> {
-                                        if (expandLink.getText().equals("Read More ⬇")) {
-
-                                            contentLabel.setText(fullText);
-                                            expandLink.setText("Read Less ⬆");
-                                        } else {
-
-                                            contentLabel.setText(truncatedText);
-                                            expandLink.setText("Read More ⬇");
-                                        }
+                                String fullText = r.getContent();
+                                if (fullText.length() > 300) {
+                                    String shortText = fullText.substring(0, 300) + "...";
+                                    cont.setText(shortText);
+                                    Hyperlink link = new Hyperlink("Read More ⬇");
+                                    link.setStyle("-fx-text-fill: #E50914; -fx-font-weight: bold;");
+                                    link.setOnAction(ev -> {
+                                        if (link.getText().equals("Read More ⬇")) { cont.setText(fullText); link.setText("Read Less ⬆"); }
+                                        else { cont.setText(shortText); link.setText("Read More ⬇"); }
                                     });
-
-                                    reviewBox.getChildren().addAll(authorLabel, contentLabel, expandLink);
+                                    rb.getChildren().addAll(auth, cont, link);
                                 } else {
-
-                                    contentLabel.setText(review.getContent());
-                                    reviewBox.getChildren().addAll(authorLabel, contentLabel);
+                                    cont.setText(fullText);
+                                    rb.getChildren().addAll(auth, cont);
                                 }
-
-                                reviewsContainer.getChildren().add(reviewBox);
+                                reviewsContainer.getChildren().add(rb);
                             }
-
-                        } else {
-                            Label noReviews = new Label("No reviews found for this movie.");
-                            noReviews.setStyle("-fx-text-fill: gray; -fx-font-size: 14px;");
-                            reviewsContainer.getChildren().add(noReviews);
                         }
-                    } else {
-                        loadingReviewsLabel.setText("Failed to load reviews.");
+                        if (!mainContent.getChildren().contains(reviewsContainer)) mainContent.getChildren().addAll(reviewsContainer, commentsContainer);
                     }
                 });
-
-            } catch (Exception ex) {
-                Platform.runLater(() -> loadingReviewsLabel.setText("Error loading reviews."));
-            }
+            } catch (Exception ex) { ex.printStackTrace(); }
         }).start();
 
-        // Load Comments
+        // --- LOAD COMMENTS THREAD ---
         new Thread(() -> {
             try (HttpClient client = HttpClient.newHttpClient()) {
-                HttpRequest request = HttpRequest.newBuilder()
-                        .uri(URI.create("http://localhost:8080/api/comments/movie/" + initialMovieData.getId()))
-                        .header("Content-Type", "application/json")
-                        .GET()
-                        .build();
-
+                HttpRequest request = HttpRequest.newBuilder().uri(URI.create("http://localhost:8080/api/comments/movie/" + initialMovieData.getId())).GET().build();
                 HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-
                 Platform.runLater(() -> {
                     if (response.statusCode() == 200) {
-                        java.lang.reflect.Type listType = new TypeToken<List<Comment>>(){}.getType();
-                        List<Comment> comments = gson.fromJson(response.body(), listType);
-
+                        List<Comment> allComments = gson.fromJson(response.body(), new TypeToken<List<Comment>>(){}.getType());
                         commentsContainer.getChildren().remove(loadingCommentsLabel);
                         commentsBox.getChildren().clear();
+                        for (Comment c : allComments) {
+                            VBox cb = new VBox(5);
+                            cb.setStyle("-fx-background-color: rgba(255,255,255,0.05); -fx-padding: 15; -fx-background-radius: 10;");
+                            cb.setMaxWidth(750);
+                            Label u = new Label("👤 " + c.getUserName());
+                            u.setStyle("-fx-text-fill: #ccc; -fx-font-weight: bold;");
+                            Label t = new Label();
+                            t.setStyle("-fx-text-fill: white;");
+                            t.setWrapText(true); t.setMaxWidth(720);
 
-                        if (comments != null && !comments.isEmpty()) {
-                            for (Comment comment : comments) {
-                                Label authorLabel = new Label("👤 " + comment.getUserName());
-                                authorLabel.setStyle("-fx-text-fill: #cccccc; -fx-font-weight: bold; -fx-font-size: 14px;");
-
-                                Label contentLabel = new Label(comment.getText());
-                                contentLabel.setStyle("-fx-text-fill: white; -fx-font-size: 14px;");
-                                contentLabel.setWrapText(true);
-                                contentLabel.setMaxWidth(750);
-
-                                VBox commentBox = new VBox(5, authorLabel, contentLabel);
-
-                                if (comment.getImage() != null && comment.getImage().length > 0) {
-                                    try {
-                                        Image img = new Image(new ByteArrayInputStream(comment.getImage()));
-                                        ImageView imageView = new ImageView(img);
-                                        imageView.setFitWidth(200);
-                                        imageView.setPreserveRatio(true);
-                                        commentBox.getChildren().add(imageView);
-                                    } catch (Exception e) {
-                                        e.printStackTrace();
-                                    }
-                                }
-
-                                commentBox.setStyle("-fx-background-color: rgba(255,255,255,0.05); -fx-padding: 15; -fx-background-radius: 10;");
-                                commentsBox.getChildren().add(commentBox);
+                            String fullT = c.getText();
+                            if (fullT.length() > 250) {
+                                String shortT = fullT.substring(0, 250) + "...";
+                                t.setText(shortT);
+                                Hyperlink h = new Hyperlink("Read More ⬇");
+                                h.setStyle("-fx-text-fill: #E50914; -fx-font-weight: bold;");
+                                h.setOnAction(ev -> {
+                                    if (h.getText().equals("Read More ⬇")) { t.setText(fullT); h.setText("Read Less ⬆"); }
+                                    else { t.setText(shortT); h.setText("Read More ⬇"); }
+                                });
+                                cb.getChildren().addAll(u, t, h);
+                            } else {
+                                t.setText(fullT);
+                                cb.getChildren().addAll(u, t);
                             }
-                        } else {
-                            Label noComments = new Label("No comments yet.");
-                            noComments.setStyle("-fx-text-fill: gray; -fx-font-size: 14px;");
-                            commentsBox.getChildren().add(noComments);
+
+                            if (c.getImage() != null && c.getImage().length > 0) {
+                                try {
+                                    ImageView iv = new ImageView(new Image(new ByteArrayInputStream(c.getImage())));
+                                    iv.setFitWidth(300); iv.setPreserveRatio(true);
+                                    cb.getChildren().add(iv);
+                                } catch (Exception ignored) {}
+                            }
+                            commentsBox.getChildren().add(cb);
                         }
-                    } else {
-                        loadingCommentsLabel.setText("Failed to load comments.");
                     }
                 });
-            } catch (Exception ex) {
-                Platform.runLater(() -> loadingCommentsLabel.setText("Error loading comments."));
-            }
+            } catch (Exception ignored) {}
         }).start();
+    }
+
+    private VBox createFactBox(String title, String value) {
+        Label t = new Label(title);
+        t.setStyle("-fx-text-fill: #E50914; -fx-font-weight: bold; -fx-font-size: 13px;");
+        Label v = new Label(value);
+        v.setStyle("-fx-text-fill: white; -fx-font-size: 15px;");
+        return new VBox(2, t, v);
+    }
+
+    private VBox createActorCard(Movie.CastMember actor) {
+        VBox card = new VBox(5);
+        card.setAlignment(Pos.TOP_CENTER);
+
+        ImageView actorImg = new ImageView();
+        actorImg.setFitWidth(90);
+        actorImg.setFitHeight(120);
+
+        javafx.scene.shape.Rectangle clip = new javafx.scene.shape.Rectangle(90, 120);
+        clip.setArcWidth(15);
+        clip.setArcHeight(15);
+        actorImg.setClip(clip);
+
+        DropShadow shadow = new DropShadow();
+        shadow.setRadius(5);
+        shadow.setOffsetX(0);
+        shadow.setOffsetY(2);
+        shadow.setColor(Color.BLACK);
+        actorImg.setEffect(shadow);
+
+        String path = actor.getProfilePath();
+        if (path != null && !path.isEmpty()) {
+
+            actorImg.setImage(new Image("https://image.tmdb.org/t/p/w185" + path, true));
+        } else {
+            actorImg.setImage(new Image("https://www.kindpng.com/picc/m/24-248253_user-profile-default-image-png-clipart-png-download.png", true));
+
+            actorImg.setOpacity(0.6); // Λίγο πιο διάφανο για να φαίνεται ότι λείπει
+        }
+
+        Label name = new Label(actor.getName());
+        name.setStyle("-fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 11px;");
+        name.setWrapText(true);
+        name.setMaxWidth(90);
+        name.setAlignment(Pos.CENTER);
+        name.setTextAlignment(TextAlignment.CENTER);
+
+        Label role = new Label(actor.getCharacter());
+        role.setStyle("-fx-text-fill: #888888; -fx-font-size: 9px;");
+        role.setWrapText(true);
+        role.setMaxWidth(90);
+        role.setAlignment(Pos.CENTER);
+        role.setTextAlignment(TextAlignment.CENTER);
+
+        card.getChildren().addAll(actorImg, name, role);
+        return card;
+    }
+
+    private Button createScrollButton(String text) {
+        Button btn = new Button(text);
+        btn.setStyle("-fx-background-color: rgba(0,0,0,0.5); -fx-text-fill: white; -fx-font-size: 20px; " +
+                "-fx-font-weight: bold; -fx-background-radius: 30; -fx-cursor: hand;");
+        btn.setPrefSize(40, 40);
+
+        // Hover effect
+        btn.setOnMouseEntered(e -> btn.setStyle("-fx-background-color: #E50914; -fx-text-fill: white; -fx-font-size: 20px; -fx-font-weight: bold; -fx-background-radius: 30; -fx-cursor: hand;"));
+        btn.setOnMouseExited(e -> btn.setStyle("-fx-background-color: rgba(0,0,0,0.5); -fx-text-fill: white; -fx-font-size: 20px; -fx-font-weight: bold; -fx-background-radius: 30; -fx-cursor: hand;"));
+
+        return btn;
     }
 
     private void submitReview(Movie movie, String reviewText) {
