@@ -32,7 +32,6 @@ import javafx.scene.text.FontWeight;
 import javafx.scene.text.TextAlignment;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
-import javafx.stage.Modality;
 import javafx.util.Duration;
 import javafx.scene.input.KeyCode;
 
@@ -51,7 +50,6 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
 
 
 public class HelloApplication extends Application {
@@ -1487,32 +1485,45 @@ public class HelloApplication extends Application {
         commentsContainer.getChildren().addAll(commentsHeader, commentsBox, loadingCommentsLabel);
 
         // Comment Input
-        if (UserSession.getInstance().isLoggedIn()) {
-            TextArea commentTextArea = new TextArea();
-            commentTextArea.setPromptText("Write your comment here...");
-            commentTextArea.setWrapText(true); commentTextArea.setPrefHeight(100);
-            commentTextArea.setStyle("-fx-control-inner-background:#333; -fx-prompt-text-fill: white; -fx-text-fill: white; -fx-background-radius: 5;");
-            Button uploadImageBtn = new Button("Upload Image");
-            Label selectedImageLabel = new Label("No image selected");
-            selectedImageLabel.setStyle("-fx-text-fill: #cccccc;");
-            uploadImageBtn.setOnAction(e -> {
-                FileChooser fc = new FileChooser();
-                fc.getExtensionFilters().add(new FileChooser.ExtensionFilter("Images", "*.png", "*.jpg", "*.jpeg", "*.gif"));
-                File file = fc.showOpenDialog(root.getScene().getWindow());
-                if (file != null) { selectedImageFile = file; selectedImageLabel.setText(file.getName()); }
-            });
-            Button submitCommentBtn = new Button("Submit Comment");
-            submitCommentBtn.setStyle("-fx-background-color: #E50914; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: 5;");
-            submitCommentBtn.setOnAction(e -> {
-                String text = commentTextArea.getText();
-                if (text != null && !text.trim().isEmpty()) {
-                    submitComment(initialMovieData, text, selectedImageFile);
-                    selectedImageFile = null; selectedImageLabel.setText("No image selected"); commentTextArea.clear();
-                }
-            });
-            HBox imgBox = new HBox(10, uploadImageBtn, selectedImageLabel); imgBox.setAlignment(Pos.CENTER_LEFT);
-            commentsContainer.getChildren().add(new VBox(10, new Label("Add Your Comment"), commentTextArea, imgBox, submitCommentBtn));
-        }
+        TextArea commentTextArea = new TextArea();
+        commentTextArea.setPromptText("Write your comment here...");
+        commentTextArea.setWrapText(true); commentTextArea.setPrefHeight(100);
+        commentTextArea.setStyle("-fx-control-inner-background:#333; -fx-prompt-text-fill: white; -fx-text-fill: white; -fx-background-radius: 5;");
+
+        commentTextArea.setOnMouseClicked(e -> {
+            if (!UserSession.getInstance().isLoggedIn()) {
+                showLoginView();
+            }
+        });
+
+        Button uploadImageBtn = new Button("Upload Image");
+        Label selectedImageLabel = new Label("No image selected");
+        selectedImageLabel.setStyle("-fx-text-fill: #cccccc;");
+        uploadImageBtn.setOnAction(e -> {
+            if (!UserSession.getInstance().isLoggedIn()) {
+                showLoginView();
+                return;
+            }
+            FileChooser fc = new FileChooser();
+            fc.getExtensionFilters().add(new FileChooser.ExtensionFilter("Images", "*.png", "*.jpg", "*.jpeg", "*.gif"));
+            File file = fc.showOpenDialog(root.getScene().getWindow());
+            if (file != null) { selectedImageFile = file; selectedImageLabel.setText(file.getName()); }
+        });
+        Button submitCommentBtn = new Button("Submit Comment");
+        submitCommentBtn.setStyle("-fx-background-color: #E50914; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: 5;");
+        submitCommentBtn.setOnAction(e -> {
+            if (!UserSession.getInstance().isLoggedIn()) {
+                showLoginView();
+                return;
+            }
+            String text = commentTextArea.getText();
+            if (text != null && !text.trim().isEmpty()) {
+                submitComment(initialMovieData, text, selectedImageFile);
+                selectedImageFile = null; selectedImageLabel.setText("No image selected"); commentTextArea.clear();
+            }
+        });
+        HBox imgBox = new HBox(10, uploadImageBtn, selectedImageLabel); imgBox.setAlignment(Pos.CENTER_LEFT);
+        commentsContainer.getChildren().add(new VBox(10, new Label("Add Your Comment"), commentTextArea, imgBox, submitCommentBtn));
 
         VBox mainContent = new VBox(30, topContent);
         mainContent.setAlignment(Pos.TOP_CENTER); mainContent.setPadding(new Insets(40));
