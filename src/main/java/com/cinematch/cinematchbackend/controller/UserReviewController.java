@@ -1,11 +1,15 @@
 package com.cinematch.cinematchbackend.controller;
 
-import com.cinematch.cinematchbackend.model.UserReview;
+import com.cinematch.cinematchbackend.model.Comments_Reviews.UserReview;
+import com.cinematch.cinematchbackend.model.User;
 import com.cinematch.cinematchbackend.services.UserReviewService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
+import java.util.Date;
 import java.util.List;
 
 @RestController
@@ -21,7 +25,25 @@ public class UserReviewController {
     }
 
     @PostMapping
-    public ResponseEntity<UserReview> saveReview(@RequestBody UserReview review) {
+    public ResponseEntity<UserReview> saveReview(
+            @RequestParam("tmdbId") Long tmdbId,
+            @RequestParam("reviewText") String reviewText,
+            @RequestParam("userId") Long userId,
+            @RequestParam(value = "image", required = false) MultipartFile image) throws IOException {
+
+        UserReview review = new UserReview();
+        review.setTmdbId(tmdbId);
+        review.setReviewText(reviewText);
+        review.setCreatedAt(new Date());
+        
+        User user = new User();
+        user.setId(userId);
+        review.setUser(user);
+
+        if (image != null && !image.isEmpty()) {
+            review.setImage(image.getBytes());
+        }
+
         return ResponseEntity.ok(userReviewService.saveReview(review));
     }
 

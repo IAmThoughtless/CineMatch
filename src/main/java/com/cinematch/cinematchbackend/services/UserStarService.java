@@ -1,9 +1,9 @@
 package com.cinematch.cinematchbackend.services;
 
-import com.cinematch.cinematchbackend.model.Movie;
-import com.cinematch.cinematchbackend.model.MovieResponse;
-import com.cinematch.cinematchbackend.model.UserStar;
-import com.cinematch.cinematchbackend.model.UserStarDTO;
+import com.cinematch.cinematchbackend.model.Movie.Movie;
+import com.cinematch.cinematchbackend.model.Movie.MovieResponse;
+import com.cinematch.cinematchbackend.model.Star.UserStar;
+import com.cinematch.cinematchbackend.model.Star.UserStarDTO;
 import com.cinematch.cinematchbackend.repository.UserStarRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -47,5 +47,14 @@ public class UserStarService {
 
     public boolean isMovieStarred(Long userId, Long tmdbId) {
         return userStarRepository.existsByUserIdAndTmdbId(userId, tmdbId);
+    }
+
+    public List<UserStarDTO> getStarsByUserId(Long userId) {
+        List<UserStar> userStars = userStarRepository.findByUserIdOrderByCreatedAtDesc(userId);
+
+        // Map the entities to DTOs for the response
+        return userStars.stream()
+                .map(UserStarDTO::new)
+                .collect(Collectors.toList());
     }
 }

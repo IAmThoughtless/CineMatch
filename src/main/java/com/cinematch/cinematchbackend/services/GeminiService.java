@@ -1,6 +1,6 @@
 package com.cinematch.cinematchbackend.services;
 
-import com.cinematch.cinematchbackend.model.QuizQuestion;
+import com.cinematch.cinematchbackend.model.Quiz.QuizQuestion;
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
@@ -86,6 +86,74 @@ public class GeminiService {
                 System.out.println("Questions JSON: " + text);
 
 
+                Type listType = new TypeToken<List<QuizQuestion>>(){}.getType();
+                return gson.fromJson(text, listType);
+            }
+            return new ArrayList<>();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return new ArrayList<>();
+        }
+    }
+
+
+    public List<QuizQuestion> getPersonalizedTrivia(List<String> movieTitles) {
+        try {
+            System.out.println("--- FETCHING PERSONALIZED QUESTIONS ---");
+
+
+            String titlesString = String.join(", ", movieTitles);
+
+
+            String prompt = "Generate 5 unique movie trivia questions specifically about these movies: " + titlesString + ". " +
+                    "Return ONLY a JSON ARRAY (list) where each object has EXACTLY this format: " +
+                    "{ \"question\": \"The question text\", \"options\": [\"Option A\", \"Option B\", \"Option C\", \"Option D\"], \"correctAnswer\": \"The exact string of the correct option\" } " +
+                    "IMPORTANT: The key for the answer MUST be 'correctAnswer'. Do not use Markdown formatting. Just the raw JSON array [ ... ].";
+
+            JsonObject part = new JsonObject();
+            part.addProperty("text", prompt);
+
+            JsonArray parts = new JsonArray();
+            parts.add(part);
+
+            JsonObject content = new JsonObject();
+            content.add("parts", parts);
+
+            JsonArray contents = new JsonArray();
+            contents.add(content);
+
+            JsonObject root = new JsonObject();
+            root.add("contents", contents);
+
+            String requestBody = new Gson().toJson(root);
+
+            HttpClient client = HttpClient.newHttpClient();
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(geminiUrl))
+                    .header("Content-Type", "application/json")
+                    .POST(BodyPublishers.ofString(requestBody))
+                    .build();
+
+            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+            if (response.statusCode() != 200) {
+                System.err.println(" ERROR: " + response.body());
+                return new ArrayList<>();
+            }
+
+            Gson gson = new Gson();
+            JsonObject jsonResponse = gson.fromJson(response.body(), JsonObject.class);
+
+            if (jsonResponse.has("candidates")) {
+                String text = jsonResponse.getAsJsonArray("candidates")
+                        .get(0).getAsJsonObject()
+                        .getAsJsonObject("content")
+                        .getAsJsonArray("parts")
+                        .get(0).getAsJsonObject()
+                        .get("text").getAsString();
+
+                text = text.replace("```json", "").replace("```", "").trim();
                 Type listType = new TypeToken<List<QuizQuestion>>(){}.getType();
                 return gson.fromJson(text, listType);
             }

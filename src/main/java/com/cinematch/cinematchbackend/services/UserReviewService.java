@@ -1,6 +1,6 @@
 package com.cinematch.cinematchbackend.services;
 
-import com.cinematch.cinematchbackend.model.UserReview;
+import com.cinematch.cinematchbackend.model.Comments_Reviews.UserReview;
 import com.cinematch.cinematchbackend.repository.UserReviewRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -29,8 +29,12 @@ public class UserReviewService {
         );
 
         if (existingReview != null) {
-            // If it exists, just update the text
+            // If it exists, update the text
             existingReview.setReviewText(reviewFromRequest.getReviewText());
+            // Also update the image if a new one is provided
+            if (reviewFromRequest.getImage() != null && reviewFromRequest.getImage().length > 0) {
+                existingReview.setImage(reviewFromRequest.getImage());
+            }
             // Do NOT update createdAt for existing reviews
             return userReviewRepository.save(existingReview);
         } else {

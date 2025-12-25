@@ -1,5 +1,6 @@
-package com.cinematch.cinematchbackend.model;
+package com.cinematch.cinematchbackend.model.Star;
 
+import com.cinematch.cinematchbackend.model.User;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;

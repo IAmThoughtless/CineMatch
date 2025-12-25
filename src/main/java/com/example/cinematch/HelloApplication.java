@@ -1,22 +1,27 @@
 package com.example.cinematch;
 
-// Import your Backend Models
-// If your User class is in a different package, change the line above!
-
-import com.cinematch.cinematchbackend.model.MovieResponse;
-import com.cinematch.cinematchbackend.model.Movie;
-import com.cinematch.cinematchbackend.model.Review;
+import com.cinematch.cinematchbackend.model.Movie.MovieResponse;
+import com.cinematch.cinematchbackend.model.Movie.Movie;
+import com.cinematch.cinematchbackend.model.Comments_Reviews.Review;
+import com.cinematch.cinematchbackend.model.Quiz.QuizQuestion;
+import com.cinematch.cinematchbackend.model.Star.UserStar;
 import com.cinematch.cinematchbackend.model.User;
-import com.cinematch.cinematchbackend.model.UserReview;
-import com.cinematch.cinematchbackend.model.MovieWithReviews;
-import com.google.gson.Gson;
+import com.cinematch.cinematchbackend.model.Comments_Reviews.UserReview;
+import com.cinematch.cinematchbackend.model.Movie.MovieWithReviews;
+import com.cinematch.cinematchbackend.model.Quiz.LeaderboardDTO;
+import com.cinematch.cinematchbackend.model.Comments_Reviews.Comment;
+import com.google.gson.*;
 import com.google.gson.reflect.TypeToken;
+import javafx.animation.KeyFrame;
+import javafx.animation.KeyValue;
+import javafx.animation.Timeline;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
+import javafx.scene.control.Hyperlink;
 import javafx.scene.effect.DropShadow;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
@@ -24,20 +29,29 @@ import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
+import javafx.scene.text.TextAlignment;
+import javafx.stage.FileChooser;
 import javafx.stage.Stage;
+import javafx.stage.Modality;
+import javafx.util.Duration;
+import javafx.scene.input.KeyCode;
 
+import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.IOException;
+import java.lang.reflect.Type;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
-import java.util.Date;
-import java.util.Map;
-
-
-import javafx.event.ActionEvent;
-import java.io.IOException;
-import java.util.Map;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Random;
 
 
 public class HelloApplication extends Application {
@@ -47,7 +61,7 @@ public class HelloApplication extends Application {
     private int currentQuestionIndex = 0;
     private int score = 0;
     private final int TOTAL_QUESTIONS = 5;
-    private java.util.List<com.cinematch.cinematchbackend.model.QuizQuestion> loadedQuestions;
+    private java.util.List<QuizQuestion> loadedQuestions;
     private final Map<String, Integer> genreMap = Map.of(
             "Animation",16,
             "Action", 28,
@@ -56,6 +70,35 @@ public class HelloApplication extends Application {
             "Horror", 27,
             "Sci-Fi", 878
     );
+
+    // Custom Gson instance with LocalDateTime adapter
+    private final Gson gson = new GsonBuilder()
+            .registerTypeAdapter(LocalDateTime.class, new JsonDeserializer<LocalDateTime>() {
+                @Override
+                public LocalDateTime deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
+                    return LocalDateTime.parse(json.getAsString(), DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+                }
+            })
+            .registerTypeAdapter(LocalDateTime.class, new JsonSerializer<LocalDateTime>() {
+                @Override
+                public JsonElement serialize(LocalDateTime src, Type typeOfSrc, JsonSerializationContext context) {
+                    return new JsonPrimitive(src.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
+                }
+            })
+            .registerTypeAdapter(byte[].class, new JsonDeserializer<byte[]>() {
+                @Override
+                public byte[] deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
+                    return java.util.Base64.getDecoder().decode(json.getAsString());
+                }
+            })
+            .registerTypeAdapter(byte[].class, new JsonSerializer<byte[]>() {
+                @Override
+                public JsonElement serialize(byte[] src, Type typeOfSrc, JsonSerializationContext context) {
+                    return new JsonPrimitive(java.util.Base64.getEncoder().encodeToString(src));
+                }
+            })
+            .create();
+
     public MenuButton createGenreMenuButton() {
         MenuButton genresMenuButton = new MenuButton("GENRES");
         genresMenuButton.setPadding(new Insets(0));
@@ -93,7 +136,7 @@ public class HelloApplication extends Application {
 
             HBox container = new HBox(label);
             container.setPadding(new Insets(2, 5, 2, 5));
-            container.setStyle("-fx-background-color: #141E30;"); // Different color (Dark blue)
+            container.setStyle("-fx-background-color: #141E30;");
             container.setAlignment(Pos.CENTER_LEFT);
             container.setPrefWidth(120);
 
@@ -106,7 +149,6 @@ public class HelloApplication extends Application {
             
             container.setOnMouseClicked(e -> {
                 handleGenreSelection(genreName);
-                //genresMenuButton.hide();
             });
 
             genresMenuButton.getItems().add(item);
@@ -118,7 +160,6 @@ public class HelloApplication extends Application {
 
         int genreId = genreMap.get(selectedGenreName);
 
-        //System.out.println("Επιλέχθηκε κατηγορία: " + selectedGenreName + ", ID: " + genreId);
         if (whatsHotContainer != null) {
             loadWhatsHotMoviesByGenre(whatsHotContainer, selectedGenreName, genreId);
         }
@@ -160,7 +201,7 @@ public class HelloApplication extends Application {
         makeButtonAnimated(loginBtn, true);
 
         Button quizBtn = new Button("Quiz");
-        quizBtn.setOnAction(event -> startQuizSession());
+        quizBtn.setOnAction(event -> showQuizSelectionView());
         quizBtn.setStyle("-fx-background-color: transparent; -fx-text-fill: white; -fx-font-size: 14px; -fx-font-weight: bold; -fx-cursor: hand; ");
         makeButtonAnimated(quizBtn, false);
 
@@ -187,7 +228,7 @@ public class HelloApplication extends Application {
 
     private void showHomeView() {
 
-
+        root.setTop(createHeader());
         Label welcomeLabel = new Label("Welcome to CineMatch");
         welcomeLabel.setStyle("-fx-text-fill: white; -fx-font-size: 36px; -fx-font-weight: bold;");
 
@@ -259,7 +300,6 @@ public class HelloApplication extends Application {
 
                 Platform.runLater(() -> {
                     targetContainer.getChildren().clear();
-                    Gson gson = new Gson();
                     MovieResponse movies = gson.fromJson(response.body(), MovieResponse.class);
 
                     if (response.statusCode() != 200 || movies == null || movies.results == null) {
@@ -289,11 +329,11 @@ public class HelloApplication extends Application {
         ProgressIndicator indicator = new ProgressIndicator();
         VBox loadingBox = new VBox(10, loadingLabel, indicator);
         loadingBox.setAlignment(Pos.CENTER);
-        targetContainer.getChildren().add(loadingBox); // Εμφάνιση loading
+        targetContainer.getChildren().add(loadingBox);
 
         new Thread(() -> {
             try (HttpClient client = HttpClient.newHttpClient()) {
-                // Κλήση στο νέο endpoint
+
                 HttpRequest request = HttpRequest.newBuilder()
                         .uri(URI.create("http://localhost:8080/api/movie/whats-hot"))
                         .header("Content-Type", "application/json")
@@ -302,8 +342,7 @@ public class HelloApplication extends Application {
                 HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
 
                 Platform.runLater(() -> {
-                    targetContainer.getChildren().clear(); // Αφαίρεση loading
-                    Gson gson = new Gson();
+                    targetContainer.getChildren().clear();
                     MovieResponse movies = gson.fromJson(response.body(), MovieResponse.class);
 
                     if (response.statusCode() != 200 || movies == null || movies.results == null) {
@@ -312,7 +351,7 @@ public class HelloApplication extends Application {
                         targetContainer.getChildren().add(errorLabel);
                     }
                     else {
-                        // Χρησιμοποιούμε τη νέα μέθοδο για εμφάνιση της λίστας
+
                         VBox whatsHotSection = buildCompactMovieListUI("🔥 What's Hot 🔥", movies);
                         targetContainer.getChildren().add(whatsHotSection);
                     }
@@ -346,7 +385,6 @@ public class HelloApplication extends Application {
 
                 HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
                 Platform.runLater(() -> {
-                    Gson gson = new Gson();
                     MovieResponse movies = gson.fromJson(response.body(), MovieResponse.class);
 
                     if (response.statusCode() != 200 || movies == null || movies.results == null) {
@@ -395,6 +433,17 @@ public class HelloApplication extends Application {
         Label messageLabel = new Label("");
         messageLabel.setStyle("-fx-text-fill: yellow; -fx-font-weight: bold;");
 
+        passwordField.setOnKeyPressed(event -> {
+            if (event.getCode() == KeyCode.ENTER) {
+                signInBtn.fire();
+            }
+        });
+        usernameField.setOnKeyPressed(event -> {
+            if (event.getCode() == KeyCode.ENTER) {
+                signInBtn.fire();
+            }
+        });
+
         signInBtn.setOnAction(event -> {
             signInBtn.setDisable(true);
             String username = usernameField.getText();
@@ -402,12 +451,11 @@ public class HelloApplication extends Application {
 
             new Thread(() -> {
                 try (HttpClient client = HttpClient.newHttpClient()) {
-                    // Assuming User constructor: User(username, password)
                     User user = new User();
                     user.setUsername(username);
                     user.setPassword(password);
 
-                    String jsonBody = new Gson().toJson(user);
+                    String jsonBody = gson.toJson(user);
 
                     HttpRequest request = HttpRequest.newBuilder()
                             .uri(URI.create("http://localhost:8080/api/auth/login"))
@@ -421,11 +469,10 @@ public class HelloApplication extends Application {
                         if (response.statusCode() == 200) {
                             messageLabel.setStyle("-fx-text-fill: lightgreen;");
                             messageLabel.setText("Login Successful!");
-                            Gson gson = new Gson();
                             User loggedInUser = gson.fromJson(response.body(), User.class);
                             UserSession.getInstance().setUsername(loggedInUser.getUsername());
                             UserSession.getInstance().setUserId(loggedInUser.getId());
-                            showHomeView();
+                                showHomeView();
                         } else {
                             messageLabel.setStyle("-fx-text-fill: red;");
                             messageLabel.setText("Login Failed: " + response.statusCode());
@@ -491,6 +538,28 @@ public class HelloApplication extends Application {
         Label messageLabel = new Label("");
         messageLabel.setStyle("-fx-text-fill: yellow; -fx-font-weight: bold;");
 
+        // --- NEW LOGIC: Handle Enter Key ---
+        confirmPassField.setOnKeyPressed(event -> {
+            if (event.getCode() == KeyCode.ENTER) {
+                registerBtn.fire();
+            }
+        });
+        passField.setOnKeyPressed(event -> {
+            if (event.getCode() == KeyCode.ENTER) {
+                registerBtn.fire();
+            }
+        });
+        userField.setOnKeyPressed(event -> {
+            if (event.getCode() == KeyCode.ENTER) {
+                registerBtn.fire();
+            }
+        });
+        emailField.setOnKeyPressed(event -> {
+            if (event.getCode() == KeyCode.ENTER) {
+                registerBtn.fire();
+            }
+        });
+
         registerBtn.setOnAction(e -> {
             registerBtn.setDisable(true);
             String email = emailField.getText();
@@ -510,7 +579,7 @@ public class HelloApplication extends Application {
                     newUser.setEmail(email);
                     newUser.setUsername(username);
                     newUser.setPassword(password);
-                    String jsonBody = new Gson().toJson(newUser);
+                    String jsonBody = gson.toJson(newUser);
 
                     HttpRequest request = HttpRequest.newBuilder()
                             .uri(URI.create("http://localhost:8080/api/auth/register"))
@@ -558,37 +627,35 @@ public class HelloApplication extends Application {
 
         Label titleLabel = new Label(headerText);
         titleLabel.setStyle("-fx-text-fill: #E50914; -fx-font-size: 24px; -fx-font-weight: bold;");
-        VBox.setMargin(titleLabel, new Insets(0, 0, 10, 50)); // Εμφάνιση τίτλου αριστερά
+        VBox.setMargin(titleLabel, new Insets(0, 0, 10, 50));
 
-        // 1. Δημιουργία HBox για τις κάρτες ταινιών (Οριζόντια διάταξη)
-        HBox movieRow = new HBox(20); // 20px κενό μεταξύ των καρτών
-        movieRow.setPadding(new Insets(0, 50, 0, 50)); // Οριζόντιο padding (αριστερά/δεξιά)
+        // 1. HBox creation for movie cards
+        HBox movieRow = new HBox(18); // Padding between movies
+        movieRow.setPadding(new Insets(0, 2, 0, 2));
 
         if (movieResponse == null || movieResponse.results == null || movieResponse.results.isEmpty()) {
             Label noResultsLabel = new Label("No movies found for this section.");
             noResultsLabel.setStyle("-fx-text-fill: white; -fx-font-size: 18px;");
-            // Αν δεν υπάρχουν αποτελέσματα, τοποθετούμε το μήνυμα σε VBox
             return new VBox(20, titleLabel, noResultsLabel);
         }
 
-        // 2. Δημιουργία και προσθήκη καρτών
-        int limit = Math.min(20, movieResponse.results.size()); // Αύξηση του ορίου σε 20 για οριζόντια σειρά
+        // 2. Creation and Addition of movie cards
+        int limit = Math.min(20, movieResponse.results.size());
 
         for (int i = 0; i < limit; i++) {
             Movie m = movieResponse.results.get(i);
 
-            // --- Δημιουργία μιας Κάρτας Ταινίας (Στοιχείο VBox) ---
-            // Εδώ η κάρτα γίνεται VBox για να περιέχει την αφίσα και τον τίτλο κάθετα
+            // Creation of a Movie Card
 
             ImageView posterView = createPosterImageView(m.getPoster_path());
-            posterView.setFitWidth(150); // Μεγαλύτερη αφίσα για οριζόντια σειρά
+            posterView.setFitWidth(150);
             posterView.setFitHeight(225);
 
             Label movieTitle = new Label(m.getTitle());
             movieTitle.setStyle("-fx-text-fill: white; -fx-font-size: 14px; -fx-font-weight: bold;");
             movieTitle.setWrapText(true);
             movieTitle.setMaxWidth(150);
-            movieTitle.setMaxHeight(40); // Περιορισμός ύψους τίτλου
+            movieTitle.setMaxHeight(40);
 
             Label rating = new Label(String.format("⭐ %.1f", m.getVote_average()));
             rating.setStyle("-fx-text-fill: #E50914; -fx-font-size: 12px;");
@@ -606,18 +673,56 @@ public class HelloApplication extends Application {
             movieRow.getChildren().add(movieCard);
         }
 
-        // 3. Τύλιγμα της οριζόντιας σειράς σε ScrollPane
         ScrollPane horizontalScrollPane = new ScrollPane(movieRow);
         horizontalScrollPane.setFitToHeight(true);
-        horizontalScrollPane.setHbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED); // Να εμφανίζεται η μπάρα κύλισης
-        horizontalScrollPane.setVbarPolicy(ScrollPane.ScrollBarPolicy.NEVER); // Απενεργοποίηση κάθετης κύλισης
-        horizontalScrollPane.setPrefHeight(350); // Καθορισμός ύψους για τη σειρά (αφίσα + τίτλος + padding)
+        horizontalScrollPane.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
+        horizontalScrollPane.setVbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
+        horizontalScrollPane.setPrefHeight(350);
         horizontalScrollPane.setStyle("-fx-background: transparent; -fx-background-color: transparent;");
 
-        // 4. Επιστροφή του τελικού κατακόρυφου layout (Τίτλος + ScrollPane)
-        VBox finalLayout = new VBox(10, titleLabel, horizontalScrollPane);
+        Button leftArrow = new Button("<");
+        Button rightArrow = new Button(">");
+
+        String arrowStyle = "-fx-background-color: rgba(0,0,0,0.5); -fx-text-fill: white; -fx-font-size: 18px; -fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: 15;";
+        leftArrow.setStyle(arrowStyle);
+        rightArrow.setStyle(arrowStyle);
+
+        leftArrow.setPrefSize(40, 40);
+        rightArrow.setPrefSize(40, 40);
+        leftArrow.setStyle(arrowStyle + "-fx-background-radius: 20;");
+        rightArrow.setStyle(arrowStyle + "-fx-background-radius: 20;");
+
+        leftArrow.setOnAction(e -> {
+            double targetHValue = Math.max(0, horizontalScrollPane.getHvalue() - 0.3334);
+            Timeline timeline = new Timeline();
+            KeyValue keyValue = new KeyValue(horizontalScrollPane.hvalueProperty(), targetHValue);
+            timeline.getKeyFrames().add(new KeyFrame(Duration.millis(400), keyValue));
+            timeline.play();
+        });
+        rightArrow.setOnAction(e -> {
+            double targetHValue = Math.min(1, horizontalScrollPane.getHvalue() + 0.3334);
+            Timeline timeline = new Timeline();
+            KeyValue keyValue = new KeyValue(horizontalScrollPane.hvalueProperty(), targetHValue);
+            timeline.getKeyFrames().add(new KeyFrame(Duration.millis(400), keyValue));
+            timeline.play();
+        });
+
+        // Hover effects for arrows
+        leftArrow.setOnMouseEntered(e -> leftArrow.setStyle(arrowStyle + "-fx-background-radius: 20; -fx-background-color: rgba(229, 9, 20, 0.8);"));
+        leftArrow.setOnMouseExited(e -> leftArrow.setStyle(arrowStyle + "-fx-background-radius: 20;"));
+
+        rightArrow.setOnMouseEntered(e -> rightArrow.setStyle(arrowStyle + "-fx-background-radius: 20; -fx-background-color: rgba(229, 9, 20, 0.8);"));
+        rightArrow.setOnMouseExited(e -> rightArrow.setStyle(arrowStyle + "-fx-background-radius: 20;"));
+
+
+        HBox containerWithArrows = new HBox(5, leftArrow, horizontalScrollPane, rightArrow);
+        containerWithArrows.setAlignment(Pos.CENTER);
+        HBox.setHgrow(horizontalScrollPane, Priority.ALWAYS);
+
+
+        VBox finalLayout = new VBox(10, titleLabel, containerWithArrows);
         finalLayout.setAlignment(Pos.TOP_LEFT);
-        finalLayout.setMaxWidth(900);
+        finalLayout.setMaxWidth(1100);
 
         return finalLayout;
     }
@@ -739,7 +844,7 @@ public class HelloApplication extends Application {
 
         new Thread(() -> {
             try (HttpClient client = HttpClient.newHttpClient()) {
-                String jsonBody = new Gson().toJson(query);
+                String jsonBody = gson.toJson(query);
 
                 HttpRequest request = HttpRequest.newBuilder()
                         .uri(URI.create("http://localhost:8080/api/movie/search"))
@@ -751,7 +856,6 @@ public class HelloApplication extends Application {
 
                 Platform.runLater(() -> {
                     if (response.statusCode() == 200) {
-                        Gson gson = new Gson();
                         MovieResponse movieResponse = gson.fromJson(response.body(), MovieResponse.class);
 
                         if (movieResponse != null && movieResponse.results != null && !movieResponse.results.isEmpty()) {
@@ -786,21 +890,32 @@ public class HelloApplication extends Application {
     }
 
     private void makeButtonAnimated(Button btn, boolean isRedButton) {
+
+        final String originalStyle = btn.getStyle();
+
         btn.setOnMouseEntered(e -> {
-            btn.setScaleX(1.10);
-            btn.setScaleY(1.10);
+
+            btn.setScaleX(1.05);
+            btn.setScaleY(1.05);
+
             if (isRedButton) {
-                double radius = btn.getBackground().getFills().getFirst().getRadii().getTopLeftHorizontalRadius();
-                btn.setStyle("-fx-background-color: #ff1f2c; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: " + radius + ";");
+
+                if (originalStyle.contains("#E50914")) {
+                    btn.setStyle(originalStyle.replace("#E50914", "#ff1f2c"));
+                } else {
+                    // Ασφάλεια: Αν δε βρει το χρώμα, απλά προσθέτει το νέο χρώμα στο τέλος
+                    btn.setStyle(originalStyle + "-fx-background-color: #ff1f2c;");
+                }
             }
         });
+
         btn.setOnMouseExited(e -> {
+
             btn.setScaleX(1.0);
             btn.setScaleY(1.0);
-            if (isRedButton) {
-                double radius = btn.getBackground().getFills().getFirst().getRadii().getTopLeftHorizontalRadius();
-                btn.setStyle("-fx-background-color: #E50914; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: " + radius + ";");
-            }
+
+
+            btn.setStyle(originalStyle);
         });
     }
     private HBox createHeader() {
@@ -825,27 +940,38 @@ public class HelloApplication extends Application {
 
         Button quizBtn = new Button("Quiz");
         quizBtn.setStyle("-fx-background-color: transparent; -fx-text-fill: white; -fx-font-size: 14px; -fx-font-weight: bold; -fx-cursor: hand; ");
-        quizBtn.setOnAction(event -> startQuizSession());
+        quizBtn.setOnAction(event -> showQuizSelectionView());
         makeButtonAnimated(quizBtn, false);
 
-        // --- NEW LOGIC START ---
+        Button leaderboardBtn = new Button("Leaderboard");
+        leaderboardBtn.setStyle("-fx-background-color: transparent; -fx-text-fill: white; -fx-font-size: 14px; -fx-font-weight: bold; -fx-cursor: hand; ");
+        leaderboardBtn.setOnAction(event -> showLeaderboardView());
+        makeButtonAnimated(leaderboardBtn, false);
+
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
         HBox header = new HBox(15);
-        header.getChildren().addAll(logoLabel, spacer, homeBtn, top10Btn, quizBtn);
+        header.getChildren().addAll(logoLabel, spacer, homeBtn, top10Btn, quizBtn, leaderboardBtn);
 
         // Check if user is logged in using our new Session class
         if (UserSession.getInstance().isLoggedIn()) {
-            // 1. Show Welcome Message
-            Label welcomeUser = new Label("Welcome, " + UserSession.getInstance().getUsername());
-            welcomeUser.setStyle("-fx-text-fill: #E50914; -fx-font-weight: bold; -fx-font-size: 14px;");
 
-            // 2. Show "My Stars" Button
+            // 1. Show "My Stars" Button
             Button myStarsBtn = new Button("My Stars");
             myStarsBtn.setStyle("-fx-background-color: transparent; -fx-text-fill: white; -fx-font-size: 14px; -fx-font-weight: bold; -fx-cursor: hand;");
             myStarsBtn.setOnAction(event -> showMyStarsView());
             makeButtonAnimated(myStarsBtn, false);
+
+            Button suggestionsBtn = new Button("Suggestions");
+            suggestionsBtn.setStyle("-fx-background-color: transparent; -fx-text-fill: white; -fx-font-size: 14px; -fx-font-weight: bold; -fx-cursor: hand;");
+            suggestionsBtn.setOnAction(event -> showSuggestionsView());
+            makeButtonAnimated(suggestionsBtn, false);
+
+            // 2. Show Welcome Message
+            Label welcomeUser = new Label("Welcome, " + UserSession.getInstance().getUsername());
+            welcomeUser.setStyle("-fx-text-fill: #E50914; -fx-font-weight: bold; -fx-font-size: 14px;");
+
 
             // 3. Show Logout Button
             Button logoutBtn = new Button("Logout");
@@ -855,7 +981,7 @@ public class HelloApplication extends Application {
                 showHomeView(); // Refresh view
             });
 
-            header.getChildren().addAll(welcomeUser, myStarsBtn, logoutBtn);
+            header.getChildren().addAll(myStarsBtn, suggestionsBtn, welcomeUser, logoutBtn);
 
         } else {
             // 4. If NOT logged in, show Login Button
@@ -866,7 +992,6 @@ public class HelloApplication extends Application {
 
             header.getChildren().add(loginBtn);
         }
-        // --- NEW LOGIC END ---
 
         header.setPadding(new Insets(15, 25, 15, 25));
         header.setAlignment(Pos.CENTER_LEFT);
@@ -876,13 +1001,12 @@ public class HelloApplication extends Application {
     }
 
 
-    private void startQuizSession() {
+    private void startQuizSession(boolean isPersonalized) {
         score = 0;
         currentQuestionIndex = 0;
-        loadedQuestions = null; // Καθαρισμός
+        loadedQuestions = null;
 
-
-        Label loadingLabel = new Label("Generating Quiz...\nPlease wait, this takes a few seconds!");
+        Label loadingLabel = new Label(isPersonalized ? "Generating Quiz from your Favorites..." : "Generating General Movie Quiz...");
         loadingLabel.setStyle("-fx-text-fill: white; -fx-font-size: 20px; -fx-text-alignment: center;");
         ProgressIndicator indicator = new ProgressIndicator();
 
@@ -890,21 +1014,29 @@ public class HelloApplication extends Application {
         loadingBox.setAlignment(Pos.CENTER);
         root.setCenter(loadingBox);
 
-
         new Thread(() -> {
             try (HttpClient client = HttpClient.newHttpClient()) {
+
+                // URL choice depending on quiz type
+                String url;
+                if (isPersonalized) {
+                    Long userId = UserSession.getInstance().getUserId();
+                    url = "http://localhost:8080/api/quiz/personalized/" + userId;
+                } else {
+                    url = "http://localhost:8080/api/quiz/batch";
+                }
+
                 HttpRequest request = HttpRequest.newBuilder()
-                        .uri(URI.create("http://localhost:8080/api/quiz/batch"))
+                        .uri(URI.create(url))
                         .header("Content-Type", "application/json")
+                        .GET()
                         .build();
 
                 HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
 
                 Platform.runLater(() -> {
                     if (response.statusCode() == 200) {
-                        Gson gson = new Gson();
-                        java.lang.reflect.Type listType = new TypeToken<java.util.List<com.cinematch.cinematchbackend.model.QuizQuestion>>(){}.getType();
-
+                        java.lang.reflect.Type listType = new TypeToken<java.util.List<QuizQuestion>>(){}.getType();
                         loadedQuestions = gson.fromJson(response.body(), listType);
 
                         if (loadedQuestions != null && !loadedQuestions.isEmpty()) {
@@ -912,6 +1044,12 @@ public class HelloApplication extends Application {
                         } else {
                             loadingLabel.setText("Failed to load questions.");
                         }
+                    } else if (response.statusCode() == 400) {
+                        loadingLabel.setText("Not enough favorites! Star at least 3 movies.");
+                        loadingLabel.setStyle("-fx-text-fill: #E50914; -fx-font-size: 20px;");
+                        Button backBtn = new Button("Go Back");
+                        backBtn.setOnAction(e -> showQuizSelectionView());
+                        loadingBox.getChildren().add(backBtn);
                     } else {
                         loadingLabel.setText("Error from server: " + response.statusCode());
                     }
@@ -931,7 +1069,7 @@ public class HelloApplication extends Application {
         }
 
 
-        com.cinematch.cinematchbackend.model.QuizQuestion q = loadedQuestions.get(currentQuestionIndex);
+        QuizQuestion q = loadedQuestions.get(currentQuestionIndex);
 
 
         currentQuestionIndex++;
@@ -941,7 +1079,7 @@ public class HelloApplication extends Application {
     }
 
 
-    private void displayQuestionUI(com.cinematch.cinematchbackend.model.QuizQuestion q) {
+    private void displayQuestionUI(QuizQuestion q) {
 
 
         Label headerLabel = new Label("Question " + currentQuestionIndex + " / " + TOTAL_QUESTIONS);
@@ -1010,6 +1148,10 @@ public class HelloApplication extends Application {
 
 
     private void showQuizResult() {
+        if (UserSession.getInstance().isLoggedIn()) {
+            submitQuizScore();
+        }
+
         Label title = new Label(" End of Quiz !");
         title.setStyle("-fx-text-fill: #E50914; -fx-font-size: 32px; -fx-font-weight: bold;");
 
@@ -1026,7 +1168,7 @@ public class HelloApplication extends Application {
 
         Button playAgainBtn = new Button("Play Again");
         playAgainBtn.setStyle("-fx-background-color: white; -fx-text-fill: black; -fx-font-weight: bold; -fx-cursor: hand; -fx-padding: 10 20;");
-        playAgainBtn.setOnAction(e -> startQuizSession());
+        playAgainBtn.setOnAction(e -> showQuizSelectionView());
 
         Button homeBtn = new Button("Back to Homepage");
         homeBtn.setStyle("-fx-background-color: #333; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand; -fx-padding: 10 20;");
@@ -1041,8 +1183,212 @@ public class HelloApplication extends Application {
         root.setCenter(layout);
     }
 
+    private void submitQuizScore() {
+        new Thread(() -> {
+            try (HttpClient client = HttpClient.newHttpClient()) {
+                String jsonBody = String.format("{\"userId\": %d, \"score\": %d, \"maxScore\": %d}",
+                        UserSession.getInstance().getUserId(), score, TOTAL_QUESTIONS);
+
+                HttpRequest request = HttpRequest.newBuilder()
+                        .uri(URI.create("http://localhost:8080/api/quiz/submit"))
+                        .header("Content-Type", "application/json")
+                        .POST(HttpRequest.BodyPublishers.ofString(jsonBody))
+                        .build();
+
+                client.send(request, HttpResponse.BodyHandlers.ofString());
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
+        }).start();
+    }
+
+    private void showLeaderboardView() {
+        Label loadingLabel = new Label("Fetching Leaderboard...");
+        loadingLabel.setStyle("-fx-text-fill: white; -fx-font-size: 24px;");
+        ProgressIndicator indicator = new ProgressIndicator();
+        VBox loadingBox = new VBox(20, loadingLabel, indicator);
+        loadingBox.setAlignment(Pos.CENTER);
+        root.setCenter(loadingBox);
+
+        new Thread(() -> {
+            try (HttpClient client = HttpClient.newHttpClient()) {
+                HttpRequest request = HttpRequest.newBuilder()
+                        .uri(URI.create("http://localhost:8080/api/quiz/leaderboard"))
+                        .header("Content-Type", "application/json")
+                        .build();
+
+                HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+                Platform.runLater(() -> {
+                    if (response.statusCode() == 200) {
+                        java.lang.reflect.Type listType = new TypeToken<List<LeaderboardDTO>>(){}.getType();
+                        List<LeaderboardDTO> leaderboard = gson.fromJson(response.body(), listType);
+                        VBox leaderboardContent = buildLeaderboardUI("🏆 Leaderboard 🏆", leaderboard);
+                        root.setCenter(leaderboardContent);
+                    } else {
+                        Label errorLabel = new Label("Could not fetch leaderboard. Check API and network connection.");
+                        errorLabel.setStyle("-fx-text-fill: red; -fx-font-size: 18px;");
+                        VBox errorBox = new VBox(errorLabel);
+                        errorBox.setAlignment(Pos.CENTER);
+                        root.setCenter(errorBox);
+                    }
+                });
+
+            } catch (Exception ex) {
+                Label errorLabel = new Label("Could not fetch leaderboard. Check API and network connection.");
+                errorLabel.setStyle("-fx-text-fill: red; -fx-font-size: 18px;");
+                VBox errorBox = new VBox(errorLabel);
+                errorBox.setAlignment(Pos.CENTER);
+                root.setCenter(errorBox);
+            }
+        }).start();
+    }
+
+    private VBox buildLeaderboardUI(String headerText, List<LeaderboardDTO> leaderboard) {
+        Label titleLabel = new Label(headerText);
+        titleLabel.setStyle("-fx-text-fill: #E50914; -fx-font-size: 32px; -fx-font-weight: bold;");
+        VBox.setMargin(titleLabel, new Insets(0, 0, 20, 0));
+
+        VBox contentLayout = new VBox(20);
+        contentLayout.setAlignment(Pos.TOP_CENTER);
+        contentLayout.setPadding(new Insets(0, 0, 50, 0)); 
+
+        if (leaderboard == null || leaderboard.isEmpty()) {
+            Label noResultsLabel = new Label("No scores on the leaderboard yet.");
+            noResultsLabel.setStyle("-fx-text-fill: white; -fx-font-size: 18px;");
+            contentLayout.getChildren().add(noResultsLabel);
+        } else {
+            // 1. Podium Section (Top 3)
+            HBox podiumBox = new HBox(15); 
+            podiumBox.setAlignment(Pos.BOTTOM_CENTER); 
+            podiumBox.setPadding(new Insets(20, 0, 30, 0));
+
+            LeaderboardDTO first = !leaderboard.isEmpty() ? leaderboard.get(0) : null;
+            LeaderboardDTO second = leaderboard.size() > 1 ? leaderboard.get(1) : null;
+            LeaderboardDTO third = leaderboard.size() > 2 ? leaderboard.get(2) : null;
+
+            if (second != null) podiumBox.getChildren().add(createPodiumStep(second, 2));
+            if (first != null) podiumBox.getChildren().add(createPodiumStep(first, 1));
+            if (third != null) podiumBox.getChildren().add(createPodiumStep(third, 3));
+
+            contentLayout.getChildren().add(podiumBox);
+
+            // 2. List Section (4th onwards)
+            if (leaderboard.size() > 3) {
+                VBox listContainer = new VBox(10);
+                listContainer.setMaxWidth(800); 
+                listContainer.setStyle("-fx-background-color: rgba(255, 255, 255, 0.05); -fx-background-radius: 10; -fx-padding: 20;");
+                
+                for (int i = 3; i < leaderboard.size(); i++) {
+                    LeaderboardDTO entry = leaderboard.get(i);
+                    HBox row = createLeaderboardRow(entry, i + 1);
+                    listContainer.getChildren().add(row);
+                    
+                    if (i < leaderboard.size() - 1) {
+                        Region sep = new Region();
+                        sep.setPrefHeight(1);
+                        sep.setStyle("-fx-background-color: rgba(255,255,255,0.1);");
+                        listContainer.getChildren().add(sep);
+                    }
+                }
+                contentLayout.getChildren().add(listContainer);
+            }
+        }
+
+        ScrollPane scrollPane = new ScrollPane(contentLayout);
+        scrollPane.setFitToWidth(true);
+        scrollPane.setStyle("-fx-background: transparent; -fx-background-color: transparent;");
+        scrollPane.setPannable(true);
+        scrollPane.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
+
+        VBox finalLayout = new VBox(20, titleLabel, scrollPane);
+        finalLayout.setPadding(new Insets(30));
+        finalLayout.setAlignment(Pos.TOP_CENTER);
+
+        return finalLayout;
+    }
+
+    private VBox createPodiumStep(LeaderboardDTO entry, int rank) {
+        // Colors
+        String color;
+        double height;
+        String emoji;
+        
+        if (rank == 1) {
+            color = "#FFD700"; // Gold
+            height = 250;
+            emoji = "👑";
+        } else if (rank == 2) {
+            color = "#C0C0C0"; // Silver
+            height = 180;
+            emoji = "🥈";
+        } else {
+            color = "#CD7F32"; // Bronze
+            height = 130;
+            emoji = "🥉";
+        }
+
+        // User Info (Above the bar)
+        Label usernameLabel = new Label(entry.getUsername());
+        usernameLabel.setStyle("-fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 16px;");
+        usernameLabel.setWrapText(true);
+        usernameLabel.setTextAlignment(TextAlignment.CENTER);
+        usernameLabel.setMaxWidth(120);
+
+        Label scoreLabel = new Label(entry.getScore() + " pts");
+        scoreLabel.setStyle("-fx-text-fill: " + color + "; -fx-font-weight: bold; -fx-font-size: 14px;");
+
+        Label dateLabel = new Label(entry.getCreatedAt());
+        dateLabel.setStyle("-fx-text-fill: #cccccc; -fx-font-size: 12px;");
+
+        VBox infoBox = new VBox(5, usernameLabel, scoreLabel, dateLabel);
+        infoBox.setAlignment(Pos.BOTTOM_CENTER);
+        infoBox.setPadding(new Insets(0, 0, 10, 0));
+
+        // The Bar
+        VBox bar = new VBox();
+        bar.setPrefSize(100, height);
+        bar.setStyle("-fx-background-color: " + color + "; -fx-background-radius: 10 10 0 0; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.5), 10, 0, 0, 0);");
+        bar.setAlignment(Pos.CENTER);
+        
+        Label rankLabel = new Label(emoji);
+        rankLabel.setFont(Font.font("Segoe UI Emoji", 40));
+        rankLabel.setStyle("-fx-text-fill: white;");
+
+        bar.getChildren().add(rankLabel);
+
+        VBox step = new VBox(infoBox, bar);
+        step.setAlignment(Pos.BOTTOM_CENTER);
+        return step;
+    }
+
+    private HBox createLeaderboardRow(LeaderboardDTO entry, int rank) {
+        Label rankLabel = new Label(rank + ".");
+        rankLabel.setStyle("-fx-text-fill: #aaa; -fx-font-size: 18px; -fx-font-weight: bold;");
+        rankLabel.setPrefWidth(40);
+
+        Label userLabel = new Label(entry.getUsername());
+        userLabel.setStyle("-fx-text-fill: white; -fx-font-size: 18px;");
+        
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+
+        Label scoreLabel = new Label(entry.getScore() + " pts");
+        scoreLabel.setStyle("-fx-text-fill: #E50914; -fx-font-size: 18px; -fx-font-weight: bold;");
+
+        Label dateLabel = new Label(entry.getCreatedAt());
+        dateLabel.setStyle("-fx-text-fill: #666; -fx-font-size: 12px;");
+        dateLabel.setPadding(new Insets(0, 0, 0, 15));
+
+        HBox row = new HBox(10, rankLabel, userLabel, spacer, scoreLabel, dateLabel);
+        row.setAlignment(Pos.CENTER_LEFT);
+        row.setPadding(new Insets(5));
+        return row;
+    }
+
+    private File selectedImageFile;
+
     private void showMovieDetails(Movie initialMovieData) {
-        // Κουμπί επιστροφής
+        // 1. Header & Back Button
         Button backBtn = new Button("⬅ Back");
         backBtn.setStyle("-fx-background-color: transparent; -fx-text-fill: #E50914; -fx-font-size: 16px; -fx-font-weight: bold; -fx-cursor: hand;");
         backBtn.setOnAction(e -> {
@@ -1053,7 +1399,7 @@ public class HelloApplication extends Application {
             }
         });
 
-        // --- Βασικά Στοιχεία //
+        // 2. Poster & Basic Info
         ImageView posterView = createPosterImageView(initialMovieData.getPoster_path());
         posterView.setFitWidth(300);
         posterView.setFitHeight(450);
@@ -1066,26 +1412,46 @@ public class HelloApplication extends Application {
         Label metaLabel = new Label("📅 " + date + "  |  ⭐ " + initialMovieData.getVote_average() + "/10 (" + initialMovieData.getVote_count() + " votes)");
         metaLabel.setStyle("-fx-text-fill: #cccccc; -fx-font-size: 16px;");
 
-        String overviewText = (initialMovieData.getOverview() != null && !initialMovieData.getOverview().isEmpty()) ? initialMovieData.getOverview() : "Δεν υπάρχει διαθέσιμη περιγραφή.";
-        Label overviewLabel = new Label(overviewText);
-        overviewLabel.setStyle("-fx-text-fill: white; -fx-font-size: 18px;");
-        overviewLabel.setWrapText(true);
-        overviewLabel.setMaxWidth(600);
+        // Facts Container
+        GridPane factsGrid = new GridPane();
+        factsGrid.setHgap(30); factsGrid.setVgap(10);
+        factsGrid.setPadding(new Insets(10, 0, 10, 0));
 
-        // --- Κουμπί Star ---
+        // Cast Section
+        VBox castSection = new VBox(15);
+        Label castHeader = new Label("Top Cast");
+        castHeader.setStyle("-fx-text-fill: #E50914; -fx-font-size: 24px; -fx-font-weight: bold;");
+        HBox castBox = new HBox(15);
+        castBox.setPadding(new Insets(10));
+        ScrollPane castScroll = new ScrollPane(castBox);
+        castScroll.setFitToHeight(true);
+        castScroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
+        castScroll.setStyle("-fx-background: transparent; -fx-background-color: transparent; -fx-border-color: transparent;");
+        castScroll.setPrefWidth(850);
+
+        Button leftArrow = createScrollButton("<");
+        Button rightArrow = createScrollButton(">");
+        leftArrow.setOnAction(e -> new Timeline(new KeyFrame(Duration.millis(300), new KeyValue(castScroll.hvalueProperty(), Math.max(0, castScroll.getHvalue() - 0.25)))).play());
+        rightArrow.setOnAction(e -> new Timeline(new KeyFrame(Duration.millis(300), new KeyValue(castScroll.hvalueProperty(), Math.min(1, castScroll.getHvalue() + 0.25)))).play());
+
+        HBox castWithArrows = new HBox(10, leftArrow, castScroll, rightArrow);
+        castWithArrows.setAlignment(Pos.CENTER);
+        castSection.getChildren().addAll(castHeader, castWithArrows);
+
+        Label overviewLabel = new Label(initialMovieData.getOverview());
+        overviewLabel.setStyle("-fx-text-fill: white; -fx-font-size: 18px;");
+        overviewLabel.setWrapText(true); overviewLabel.setMaxWidth(600);
+
+        // Star Button
         Button starBtn = new Button("Loading...");
         starBtn.setDisable(true);
-
         if (UserSession.getInstance().isLoggedIn()) {
             new Thread(() -> {
                 boolean isStarred = isMovieStarred(initialMovieData.getId());
                 Platform.runLater(() -> {
                     starBtn.setDisable(false);
-                    if (isStarred) {
-                        setupUnstarButton(starBtn, initialMovieData);
-                    } else {
-                        setupStarButton(starBtn, initialMovieData);
-                    }
+                    if (isStarred) setupUnstarButton(starBtn, initialMovieData);
+                    else setupStarButton(starBtn, initialMovieData);
                 });
             }).start();
         } else {
@@ -1095,205 +1461,244 @@ public class HelloApplication extends Application {
             starBtn.setOnAction(ev -> showLoginView());
         }
 
-        VBox infoBox = new VBox(20, titleLabel, metaLabel, overviewLabel, starBtn);
+        VBox infoBox = new VBox(20, titleLabel, metaLabel, factsGrid, overviewLabel, starBtn);
         infoBox.setAlignment(Pos.CENTER_LEFT);
-
         HBox topContent = new HBox(40, posterView, infoBox);
         topContent.setAlignment(Pos.CENTER);
         topContent.setPadding(new Insets(0, 0, 40, 0));
 
-        // --- ΤΜΗΜΑ ΚΡΙΤΙΚΩΝ (REVIEWS SECTION) ---
+        // REVIEWS & COMMENTS CONTAINERS
         VBox reviewsContainer = new VBox(15);
-        reviewsContainer.setAlignment(Pos.TOP_LEFT);
-        reviewsContainer.setMaxWidth(800);
-
+        reviewsContainer.setAlignment(Pos.TOP_LEFT); reviewsContainer.setMaxWidth(800);
         Label reviewsHeader = new Label("User Reviews");
         reviewsHeader.setStyle("-fx-text-fill: #E50914; -fx-font-size: 24px; -fx-font-weight: bold;");
-
         VBox userReviewsBox = new VBox(10);
-        userReviewsBox.setAlignment(Pos.TOP_LEFT);
-
-        Label loadingReviewsLabel = new Label("Loading reviews...");
+        Label loadingReviewsLabel = new Label("Loading details & reviews...");
         loadingReviewsLabel.setStyle("-fx-text-fill: gray; -fx-font-style: italic;");
-
         reviewsContainer.getChildren().addAll(reviewsHeader, userReviewsBox, loadingReviewsLabel);
 
-        // --- Add Review Form ---
+        VBox commentsContainer = new VBox(15);
+        commentsContainer.setAlignment(Pos.TOP_LEFT); commentsContainer.setMaxWidth(800);
+        Label commentsHeader = new Label("Comments");
+        commentsHeader.setStyle("-fx-text-fill: #E50914; -fx-font-size: 24px; -fx-font-weight: bold;");
+        VBox commentsBox = new VBox(10);
+        Label loadingCommentsLabel = new Label("Loading comments...");
+        loadingCommentsLabel.setStyle("-fx-text-fill: gray; -fx-font-style: italic;");
+        commentsContainer.getChildren().addAll(commentsHeader, commentsBox, loadingCommentsLabel);
+
+        // Comment Input
         if (UserSession.getInstance().isLoggedIn()) {
-            TextArea reviewTextArea = new TextArea();
-            reviewTextArea.setPromptText("Write your review here...");
-            reviewTextArea.setWrapText(true);
-            reviewTextArea.setPrefHeight(100);
-            reviewTextArea.setStyle("-fx-control-inner-background:#333; -fx-prompt-text-fill: white; -fx-text-fill: white; -fx-background-radius: 5;");
-
-            Button submitReviewBtn = new Button("Submit Review");
-            submitReviewBtn.setStyle("-fx-background-color: #E50914; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: 5;");
-
-            new Thread(() -> {
-                UserReview userReview = getUserReview(initialMovieData.getId());
-                Platform.runLater(() -> {
-                    if (userReview != null) {
-                        reviewTextArea.setText(userReview.getReviewText());
-                    }
-                });
-            }).start();
-
-            submitReviewBtn.setOnAction(e -> {
-                String reviewText = reviewTextArea.getText();
-                if (reviewText != null && !reviewText.trim().isEmpty()) {
-                    submitReview(initialMovieData, reviewText);
+            TextArea commentTextArea = new TextArea();
+            commentTextArea.setPromptText("Write your comment here...");
+            commentTextArea.setWrapText(true); commentTextArea.setPrefHeight(100);
+            commentTextArea.setStyle("-fx-control-inner-background:#333; -fx-prompt-text-fill: white; -fx-text-fill: white; -fx-background-radius: 5;");
+            Button uploadImageBtn = new Button("Upload Image");
+            Label selectedImageLabel = new Label("No image selected");
+            selectedImageLabel.setStyle("-fx-text-fill: #cccccc;");
+            uploadImageBtn.setOnAction(e -> {
+                FileChooser fc = new FileChooser();
+                fc.getExtensionFilters().add(new FileChooser.ExtensionFilter("Images", "*.png", "*.jpg", "*.jpeg", "*.gif"));
+                File file = fc.showOpenDialog(root.getScene().getWindow());
+                if (file != null) { selectedImageFile = file; selectedImageLabel.setText(file.getName()); }
+            });
+            Button submitCommentBtn = new Button("Submit Comment");
+            submitCommentBtn.setStyle("-fx-background-color: #E50914; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: 5;");
+            submitCommentBtn.setOnAction(e -> {
+                String text = commentTextArea.getText();
+                if (text != null && !text.trim().isEmpty()) {
+                    submitComment(initialMovieData, text, selectedImageFile);
+                    selectedImageFile = null; selectedImageLabel.setText("No image selected"); commentTextArea.clear();
                 }
             });
-            VBox addReviewBox = new VBox(10, new Label("Add Your Review"), reviewTextArea, submitReviewBtn);
-            addReviewBox.setAlignment(Pos.TOP_LEFT);
-            reviewsContainer.getChildren().add(addReviewBox);
-        } else {
-            TextArea reviewTextArea = new TextArea();
-            reviewTextArea.setPromptText("Login or register to write a review");
-            reviewTextArea.setWrapText(true);
-            reviewTextArea.setPrefHeight(100);
-            reviewTextArea.setEditable(false); // Make it non-editable
-            reviewTextArea.setStyle("-fx-control-inner-background:#333; -fx-prompt-text-fill: white; -fx-background-radius: 5;");
-            reviewTextArea.setOnMouseClicked(e -> showLoginView()); // Redirect to login on click
-
-            Button submitReviewBtn = new Button("Submit Review");
-            submitReviewBtn.setStyle("-fx-background-color: #E50914; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: 5;");
-            submitReviewBtn.setOnAction(e -> showLoginView()); // Redirect to login on button click
-
-            VBox addReviewBox = new VBox(10, new Label("Add Your Review"), reviewTextArea, submitReviewBtn);
-            addReviewBox.setAlignment(Pos.TOP_LEFT);
-            reviewsContainer.getChildren().add(addReviewBox);
+            HBox imgBox = new HBox(10, uploadImageBtn, selectedImageLabel); imgBox.setAlignment(Pos.CENTER_LEFT);
+            commentsContainer.getChildren().add(new VBox(10, new Label("Add Your Comment"), commentTextArea, imgBox, submitCommentBtn));
         }
-        
 
-
-        // ---  UI ---
-        VBox mainContent = new VBox(20, topContent, reviewsContainer);
-        mainContent.setAlignment(Pos.TOP_CENTER);
-        mainContent.setPadding(new Insets(40));
-
+        VBox mainContent = new VBox(30, topContent);
+        mainContent.setAlignment(Pos.TOP_CENTER); mainContent.setPadding(new Insets(40));
         ScrollPane scrollPane = new ScrollPane(mainContent);
-        scrollPane.setFitToWidth(true);
-        scrollPane.setStyle("-fx-background: transparent; -fx-background-color: transparent;");
-        scrollPane.setPannable(true);
+        scrollPane.setFitToWidth(true); scrollPane.setStyle("-fx-background: transparent; -fx-background-color: transparent;");
 
-        VBox finalLayout = new VBox(20, backBtn, scrollPane);
-        finalLayout.setPadding(new Insets(20));
+        root.setCenter(new VBox(20, backBtn, scrollPane));
 
-        root.setCenter(finalLayout);
-
-
+        // --- API LOADING (MOVIE DETAILS & REVIEWS) ---
         new Thread(() -> {
             try (HttpClient client = HttpClient.newHttpClient()) {
-                HttpRequest request = HttpRequest.newBuilder()
-                        .uri(URI.create("http://localhost:8080/api/movie/" + initialMovieData.getId()))
-                        .header("Content-Type", "application/json")
-                        .GET()
-                        .build();
-
+                HttpRequest request = HttpRequest.newBuilder().uri(URI.create("http://localhost:8080/api/movie/" + initialMovieData.getId())).GET().build();
                 HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-
                 Platform.runLater(() -> {
                     if (response.statusCode() == 200) {
-                        Gson gson = new Gson();
                         MovieWithReviews movieWithReviews = gson.fromJson(response.body(), MovieWithReviews.class);
                         Movie fullMovie = movieWithReviews.getMovie();
-                        java.util.List<UserReview> userReviews = movieWithReviews.getUserReviews();
+
+                        factsGrid.getChildren().clear();
+                        if (fullMovie.getBudget() > 0) factsGrid.add(createFactBox("Budget", String.format("$%,d", fullMovie.getBudget())), 0, 0);
+                        if (fullMovie.getRevenue() > 0) factsGrid.add(createFactBox("Revenue", String.format("$%,d", fullMovie.getRevenue())), 1, 0);
+                        if (fullMovie.getRuntime() > 0) factsGrid.add(createFactBox("Runtime", fullMovie.getRuntime() + " min"), 0, 1);
+
+                        castBox.getChildren().clear();
+                        if (fullMovie.getCast() != null) {
+                            for (Movie.CastMember actor : fullMovie.getCast()) castBox.getChildren().add(createActorCard(actor));
+                            if (!mainContent.getChildren().contains(castSection)) mainContent.getChildren().add(1, castSection);
+                        }
 
                         reviewsContainer.getChildren().remove(loadingReviewsLabel);
-
-                        // Display User Reviews
                         userReviewsBox.getChildren().clear();
-                        if (userReviews != null && !userReviews.isEmpty()) {
-                            for (UserReview review : userReviews) {
-                                Label authorLabel = new Label("👤 " + review.getUser().getUsername());
-                                authorLabel.setStyle("-fx-text-fill: #cccccc; -fx-font-weight: bold; -fx-font-size: 14px;");
 
-                                Label contentLabel = new Label(review.getReviewText());
-                                contentLabel.setStyle("-fx-text-fill: white; -fx-font-size: 14px;");
-                                contentLabel.setWrapText(true);
-                                contentLabel.setMaxWidth(750);
-                                
-                                Label dateLabel = new Label("Created at: " + new java.text.SimpleDateFormat("dd/MM/yyyy HH:mm:ss").format(review.getCreatedAt()));
-                                dateLabel.setStyle("-fx-text-fill: #cccccc; -fx-font-size: 12px;");
+                        // Λογική Read More για TMDB Reviews
+                        if (fullMovie.getReviews() != null && fullMovie.getReviews().getResults() != null) {
+                            for (Review r : fullMovie.getReviews().getResults()) {
+                                VBox rb = new VBox(5);
+                                rb.setStyle("-fx-background-color: rgba(255,255,255,0.05); -fx-padding: 15; -fx-background-radius: 10;");
+                                rb.setMaxWidth(750);
+                                Label auth = new Label("👤 " + r.getAuthor());
+                                auth.setStyle("-fx-text-fill: #ccc; -fx-font-weight: bold;");
+                                Label cont = new Label();
+                                cont.setStyle("-fx-text-fill: white;");
+                                cont.setWrapText(true); cont.setMaxWidth(720);
 
-                                VBox reviewBox = new VBox(5, authorLabel, contentLabel, dateLabel);
-                                reviewBox.setStyle("-fx-background-color: rgba(255,255,255,0.05); -fx-padding: 15; -fx-background-radius: 10;");
-                                userReviewsBox.getChildren().add(reviewBox);
-                            }
-                        } else {
-                            Label noReviews = new Label("No user reviews yet.");
-                            noReviews.setStyle("-fx-text-fill: gray; -fx-font-size: 14px;");
-                            userReviewsBox.getChildren().add(noReviews);
-                        }
-
-
-                        if (fullMovie.getReviews() != null && fullMovie.getReviews().getResults() != null && !fullMovie.getReviews().getResults().isEmpty()) {
-
-
-                            for (Review review : fullMovie.getReviews().getResults()) {
-                                Label authorLabel = new Label("👤 " + review.getAuthor());
-                                authorLabel.setStyle("-fx-text-fill: #cccccc; -fx-font-weight: bold; -fx-font-size: 14px;");
-
-                                Label contentLabel = new Label();
-                                contentLabel.setStyle("-fx-text-fill: white; -fx-font-size: 14px;");
-                                contentLabel.setWrapText(true);
-                                contentLabel.setMaxWidth(750); // Σιγουρέψου ότι αυτό χωράει στο UI σου
-
-                                VBox reviewBox = new VBox(5);
-                                reviewBox.setStyle("-fx-background-color: rgba(255,255,255,0.05); -fx-padding: 15; -fx-background-radius: 10;");
-
-                                // --- ΛΟΓΙΚΗ EXPAND  ---
-                                int MAX_LENGTH = 400;
-
-                                if (review.getContent().length() > MAX_LENGTH) {
-                                    String fullText = review.getContent();
-                                    String truncatedText = review.getContent().substring(0, MAX_LENGTH) + "...";
-
-
-                                    contentLabel.setText(truncatedText);
-
-
-                                    javafx.scene.control.Hyperlink expandLink = new javafx.scene.control.Hyperlink("Read More ⬇");
-                                    expandLink.setStyle("-fx-text-fill: #E50914; -fx-border-color: transparent; -fx-font-weight: bold;");
-
-
-                                    expandLink.setOnAction(e -> {
-                                        if (expandLink.getText().equals("Read More ⬇")) {
-
-                                            contentLabel.setText(fullText);
-                                            expandLink.setText("Read Less ⬆");
-                                        } else {
-
-                                            contentLabel.setText(truncatedText);
-                                            expandLink.setText("Read More ⬇");
-                                        }
+                                String fullText = r.getContent();
+                                if (fullText.length() > 300) {
+                                    String shortText = fullText.substring(0, 300) + "...";
+                                    cont.setText(shortText);
+                                    Hyperlink link = new Hyperlink("Read More ⬇");
+                                    link.setStyle("-fx-text-fill: #E50914; -fx-font-weight: bold;");
+                                    link.setOnAction(ev -> {
+                                        if (link.getText().equals("Read More ⬇")) { cont.setText(fullText); link.setText("Read Less ⬆"); }
+                                        else { cont.setText(shortText); link.setText("Read More ⬇"); }
                                     });
-
-                                    reviewBox.getChildren().addAll(authorLabel, contentLabel, expandLink);
+                                    rb.getChildren().addAll(auth, cont, link);
                                 } else {
-
-                                    contentLabel.setText(review.getContent());
-                                    reviewBox.getChildren().addAll(authorLabel, contentLabel);
+                                    cont.setText(fullText);
+                                    rb.getChildren().addAll(auth, cont);
                                 }
-
-                                reviewsContainer.getChildren().add(reviewBox);
+                                reviewsContainer.getChildren().add(rb);
                             }
-
-                        } else {
-                            Label noReviews = new Label("No reviews found for this movie.");
-                            noReviews.setStyle("-fx-text-fill: gray; -fx-font-size: 14px;");
-                            reviewsContainer.getChildren().add(noReviews);
                         }
-                    } else {
-                        loadingReviewsLabel.setText("Failed to load reviews.");
+                        if (!mainContent.getChildren().contains(reviewsContainer)) mainContent.getChildren().addAll(reviewsContainer, commentsContainer);
                     }
                 });
-
-            } catch (Exception ex) {
-                Platform.runLater(() -> loadingReviewsLabel.setText("Error loading reviews."));
-            }
+            } catch (Exception ex) { ex.printStackTrace(); }
         }).start();
+
+        // --- LOAD COMMENTS THREAD ---
+        new Thread(() -> {
+            try (HttpClient client = HttpClient.newHttpClient()) {
+                HttpRequest request = HttpRequest.newBuilder().uri(URI.create("http://localhost:8080/api/comments/movie/" + initialMovieData.getId())).GET().build();
+                HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+                Platform.runLater(() -> {
+                    if (response.statusCode() == 200) {
+                        List<Comment> allComments = gson.fromJson(response.body(), new TypeToken<List<Comment>>(){}.getType());
+                        commentsContainer.getChildren().remove(loadingCommentsLabel);
+                        commentsBox.getChildren().clear();
+                        for (Comment c : allComments) {
+                            VBox cb = new VBox(5);
+                            cb.setStyle("-fx-background-color: rgba(255,255,255,0.05); -fx-padding: 15; -fx-background-radius: 10;");
+                            cb.setMaxWidth(750);
+                            Label u = new Label("👤 " + c.getUserName());
+                            u.setStyle("-fx-text-fill: #ccc; -fx-font-weight: bold;");
+                            Label t = new Label();
+                            t.setStyle("-fx-text-fill: white;");
+                            t.setWrapText(true); t.setMaxWidth(720);
+
+                            String fullT = c.getText();
+                            if (fullT.length() > 250) {
+                                String shortT = fullT.substring(0, 250) + "...";
+                                t.setText(shortT);
+                                Hyperlink h = new Hyperlink("Read More ⬇");
+                                h.setStyle("-fx-text-fill: #E50914; -fx-font-weight: bold;");
+                                h.setOnAction(ev -> {
+                                    if (h.getText().equals("Read More ⬇")) { t.setText(fullT); h.setText("Read Less ⬆"); }
+                                    else { t.setText(shortT); h.setText("Read More ⬇"); }
+                                });
+                                cb.getChildren().addAll(u, t, h);
+                            } else {
+                                t.setText(fullT);
+                                cb.getChildren().addAll(u, t);
+                            }
+
+                            if (c.getImage() != null && c.getImage().length > 0) {
+                                try {
+                                    ImageView iv = new ImageView(new Image(new ByteArrayInputStream(c.getImage())));
+                                    iv.setFitWidth(300); iv.setPreserveRatio(true);
+                                    cb.getChildren().add(iv);
+                                } catch (Exception ignored) {}
+                            }
+                            commentsBox.getChildren().add(cb);
+                        }
+                    }
+                });
+            } catch (Exception ignored) {}
+        }).start();
+    }
+
+    private VBox createFactBox(String title, String value) {
+        Label t = new Label(title);
+        t.setStyle("-fx-text-fill: #E50914; -fx-font-weight: bold; -fx-font-size: 13px;");
+        Label v = new Label(value);
+        v.setStyle("-fx-text-fill: white; -fx-font-size: 15px;");
+        return new VBox(2, t, v);
+    }
+
+    private VBox createActorCard(Movie.CastMember actor) {
+        VBox card = new VBox(5);
+        card.setAlignment(Pos.TOP_CENTER);
+
+        ImageView actorImg = new ImageView();
+        actorImg.setFitWidth(90);
+        actorImg.setFitHeight(120);
+
+        javafx.scene.shape.Rectangle clip = new javafx.scene.shape.Rectangle(90, 120);
+        clip.setArcWidth(15);
+        clip.setArcHeight(15);
+        actorImg.setClip(clip);
+
+        DropShadow shadow = new DropShadow();
+        shadow.setRadius(5);
+        shadow.setOffsetX(0);
+        shadow.setOffsetY(2);
+        shadow.setColor(Color.BLACK);
+        actorImg.setEffect(shadow);
+
+        String path = actor.getProfilePath();
+        if (path != null && !path.isEmpty()) {
+
+            actorImg.setImage(new Image("https://image.tmdb.org/t/p/w185" + path, true));
+        } else {
+            actorImg.setImage(new Image("https://www.kindpng.com/picc/m/24-248253_user-profile-default-image-png-clipart-png-download.png", true));
+
+            actorImg.setOpacity(0.6); // Λίγο πιο διάφανο για να φαίνεται ότι λείπει
+        }
+
+        Label name = new Label(actor.getName());
+        name.setStyle("-fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 11px;");
+        name.setWrapText(true);
+        name.setMaxWidth(90);
+        name.setAlignment(Pos.CENTER);
+        name.setTextAlignment(TextAlignment.CENTER);
+
+        Label role = new Label(actor.getCharacter());
+        role.setStyle("-fx-text-fill: #888888; -fx-font-size: 9px;");
+        role.setWrapText(true);
+        role.setMaxWidth(90);
+        role.setAlignment(Pos.CENTER);
+        role.setTextAlignment(TextAlignment.CENTER);
+
+        card.getChildren().addAll(actorImg, name, role);
+        return card;
+    }
+
+    private Button createScrollButton(String text) {
+        Button btn = new Button(text);
+        btn.setStyle("-fx-background-color: rgba(0,0,0,0.5); -fx-text-fill: white; -fx-font-size: 20px; " +
+                "-fx-font-weight: bold; -fx-background-radius: 30; -fx-cursor: hand;");
+        btn.setPrefSize(40, 40);
+
+        // Hover effect
+        btn.setOnMouseEntered(e -> btn.setStyle("-fx-background-color: #E50914; -fx-text-fill: white; -fx-font-size: 20px; -fx-font-weight: bold; -fx-background-radius: 30; -fx-cursor: hand;"));
+        btn.setOnMouseExited(e -> btn.setStyle("-fx-background-color: rgba(0,0,0,0.5); -fx-text-fill: white; -fx-font-size: 20px; -fx-font-weight: bold; -fx-background-radius: 30; -fx-cursor: hand;"));
+
+        return btn;
     }
 
     private void submitReview(Movie movie, String reviewText) {
@@ -1306,7 +1711,7 @@ public class HelloApplication extends Application {
                 user.setId(UserSession.getInstance().getUserId());
                 review.setUser(user);
 
-                String jsonBody = new Gson().toJson(review);
+                String jsonBody = gson.toJson(review);
 
                 HttpRequest request = HttpRequest.newBuilder()
                         .uri(URI.create("http://localhost:8080/api/reviews"))
@@ -1318,7 +1723,6 @@ public class HelloApplication extends Application {
 
                 if (response.statusCode() == 200) {
                     Platform.runLater(() -> {
-                        // Refresh the movie details view to show the new review
                         showMovieDetails(movie);
                     });
                 }
@@ -1327,6 +1731,82 @@ public class HelloApplication extends Application {
                 ex.printStackTrace();
             }
         }).start();
+    }
+
+    private void submitComment(Movie movie, String commentText, File imageFile) {
+        new Thread(() -> {
+            try {
+                String boundary = "---ContentBoundary" + System.currentTimeMillis();
+                String lineFeed = "\r\n";
+                
+                List<byte[]> multipartBody = new ArrayList<>();
+                
+                // Add movieId
+                addFormField(multipartBody, "movieId", String.valueOf(movie.getId()), boundary, lineFeed);
+                // Add userName
+                addFormField(multipartBody, "userName", UserSession.getInstance().getUsername(), boundary, lineFeed);
+                // Add text
+                addFormField(multipartBody, "text", commentText, boundary, lineFeed);
+                // Add rating (default 0 for now)
+                addFormField(multipartBody, "rating", "0", boundary, lineFeed);
+                
+                // Add image if exists
+                if (imageFile != null) {
+                    addFilePart(multipartBody, "image", imageFile, boundary, lineFeed);
+                }
+                
+                // End boundary
+                multipartBody.add(("--" + boundary + "--" + lineFeed).getBytes(StandardCharsets.UTF_8));
+                
+                // Combine all parts
+                int totalSize = 0;
+                for (byte[] part : multipartBody) {
+                    totalSize += part.length;
+                }
+                byte[] requestBody = new byte[totalSize];
+                int offset = 0;
+                for (byte[] part : multipartBody) {
+                    System.arraycopy(part, 0, requestBody, offset, part.length);
+                    offset += part.length;
+                }
+
+                HttpClient client = HttpClient.newHttpClient();
+                HttpRequest request = HttpRequest.newBuilder()
+                        .uri(URI.create("http://localhost:8080/api/comments/add"))
+                        .header("Content-Type", "multipart/form-data; boundary=" + boundary)
+                        .POST(HttpRequest.BodyPublishers.ofByteArray(requestBody))
+                        .build();
+
+                HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+                if (response.statusCode() == 200) {
+                    Platform.runLater(() -> {
+                        showMovieDetails(movie);
+                    });
+                }
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
+        }).start();
+    }
+
+    private void addFormField(List<byte[]> body, String name, String value, String boundary, String lineFeed) {
+        String header = "--" + boundary + lineFeed +
+                "Content-Disposition: form-data; name=\"" + name + "\"" + lineFeed +
+                lineFeed +
+                value + lineFeed;
+        body.add(header.getBytes(StandardCharsets.UTF_8));
+    }
+
+    private void addFilePart(List<byte[]> body, String fieldName, File uploadFile, String boundary, String lineFeed) throws IOException {
+        String fileName = uploadFile.getName();
+        String header = "--" + boundary + lineFeed +
+                "Content-Disposition: form-data; name=\"" + fieldName + "\"; filename=\"" + fileName + "\"" + lineFeed +
+                "Content-Type: application/octet-stream" + lineFeed +
+                lineFeed;
+        body.add(header.getBytes(StandardCharsets.UTF_8));
+        body.add(Files.readAllBytes(uploadFile.toPath()));
+        body.add(lineFeed.getBytes(StandardCharsets.UTF_8));
     }
 
     private UserReview getUserReview(Long tmdbId) {
@@ -1341,7 +1821,7 @@ public class HelloApplication extends Application {
             HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
 
             if (response.statusCode() == 200 && response.body() != null && !response.body().isEmpty()) {
-                return new Gson().fromJson(response.body(), UserReview.class);
+                return gson.fromJson(response.body(), UserReview.class);
             }
 
         } catch (Exception ex) {
@@ -1396,7 +1876,6 @@ public class HelloApplication extends Application {
 
                 Platform.runLater(() -> {
                     if (response.statusCode() == 200) {
-                        Gson gson = new Gson();
                         MovieResponse movieResponse = gson.fromJson(response.body(), MovieResponse.class);
 
                         VBox myStarsContent = buildMovieListUI("⭐ My Starred Movies ⭐", movieResponse);
@@ -1423,17 +1902,68 @@ public class HelloApplication extends Application {
         }).start();
     }
 
+    private void showSuggestionsView() {
+        if (!UserSession.getInstance().isLoggedIn()) {
+            showLoginView();
+            return;
+        }
+
+        Label loadingLabel = new Label("Fetching Your Movie Suggestions...");
+        loadingLabel.setStyle("-fx-text-fill: white; -fx-font-size: 24px;");
+        ProgressIndicator indicator = new ProgressIndicator();
+        VBox loadingBox = new VBox(20, loadingLabel, indicator);
+        loadingBox.setAlignment(Pos.CENTER);
+        root.setCenter(loadingBox);
+
+        new Thread(() -> {
+            try (HttpClient client = HttpClient.newHttpClient()) {
+                HttpRequest request = HttpRequest.newBuilder()
+                        .uri(URI.create("http://localhost:8080/api/movie/suggestions/" + UserSession.getInstance().getUserId()))
+                        .header("Content-Type", "application/json")
+                        .GET()
+                        .build();
+
+                HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+                Platform.runLater(() -> {
+                    if (response.statusCode() == 200) {
+                        MovieResponse movieResponse = gson.fromJson(response.body(), MovieResponse.class);
+
+                        VBox suggestionsContent = buildMovieListUI("⭐ Suggested For You ⭐", movieResponse);
+                        lastMovieListView = suggestionsContent;
+                        root.setCenter(suggestionsContent);
+                    } else {
+                        Label errorLabel = new Label("Could not fetch your movie suggestions. Server response: " + response.statusCode());
+                        errorLabel.setStyle("-fx-text-fill: red; -fx-font-size: 18px;");
+                        VBox errorBox = new VBox(errorLabel);
+                        errorBox.setAlignment(Pos.CENTER);
+                        root.setCenter(errorBox);
+                    }
+                });
+
+            } catch (Exception ex) {
+                Platform.runLater(() -> {
+                    Label errorLabel = new Label("Connection Error: " + ex.getMessage());
+                    errorLabel.setStyle("-fx-text-fill: red; -fx-font-size: 18px;");
+                    VBox errorBox = new VBox(errorLabel);
+                    errorBox.setAlignment(Pos.CENTER);
+                    root.setCenter(errorBox);
+                });
+            }
+        }).start();
+    }
+
     private void starMovie(Movie m) {
         new Thread(() -> {
             try (HttpClient client = HttpClient.newHttpClient()) {
-                com.cinematch.cinematchbackend.model.UserStar star = new com.cinematch.cinematchbackend.model.UserStar();
+                UserStar star = new UserStar();
                 star.setTmdbId(m.getId());
                 star.setTitle(m.getTitle());
                 User user = new User();
                 user.setId(UserSession.getInstance().getUserId());
                 star.setUser(user);
 
-                String jsonBody = new Gson().toJson(star);
+                String jsonBody = gson.toJson(star);
 
                 HttpRequest request = HttpRequest.newBuilder()
                         .uri(URI.create("http://localhost:8080/api/v1/stars"))
@@ -1463,6 +1993,70 @@ public class HelloApplication extends Application {
                 ex.printStackTrace();
             }
         }).start();
+    }
+
+    private void showQuizSelectionView() {
+        Label title = new Label("Choose Quiz Type");
+        title.setStyle("-fx-text-fill: white; -fx-font-size: 32px; -fx-font-weight: bold;");
+
+
+        Button generalBtn = new Button("🌍 General Knowledge");
+        generalBtn.setStyle("-fx-background-color: #333; -fx-text-fill: white; -fx-font-size: 18px; -fx-cursor: hand; -fx-padding: 15 30; -fx-background-radius: 10;");
+        makeButtonAnimated(generalBtn, false);
+        generalBtn.setOnAction(e -> startQuizSession(false)); // false = not personalized
+
+
+        Button personalBtn = new Button("⭐ My Favorites Quiz");
+        personalBtn.setStyle("-fx-background-color: #E50914; -fx-text-fill: white; -fx-font-size: 18px; -fx-font-weight: bold; -fx-cursor: hand; -fx-padding: 15 30; -fx-background-radius: 10;");
+        makeButtonAnimated(personalBtn, true);
+
+
+        if (UserSession.getInstance().isLoggedIn()) {
+            personalBtn.setDisable(true);
+            personalBtn.setText("⭐ My Favorites Quiz (Checking...)");
+            personalBtn.setStyle("-fx-background-color: #555; -fx-text-fill: #aaa; -fx-font-size: 18px; -fx-padding: 15 30; -fx-background-radius: 10;");
+
+            new Thread(() -> {
+                try (HttpClient client = HttpClient.newHttpClient()) {
+                    HttpRequest request = HttpRequest.newBuilder()
+                            .uri(URI.create("http://localhost:8080/api/v1/stars/" + UserSession.getInstance().getUserId()))
+                            .header("Content-Type", "application/json")
+                            .GET()
+                            .build();
+
+                    HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+                    Platform.runLater(() -> {
+                        if (response.statusCode() == 200) {
+                            MovieResponse movieResponse = gson.fromJson(response.body(), MovieResponse.class);
+                            if (movieResponse != null && movieResponse.results != null && movieResponse.results.size() >= 3) {
+                                personalBtn.setDisable(false);
+                                personalBtn.setText("⭐ My Favorites Quiz");
+                                personalBtn.setStyle("-fx-background-color: #E50914; -fx-text-fill: white; -fx-font-size: 18px; -fx-font-weight: bold; -fx-cursor: hand; -fx-padding: 15 30; -fx-background-radius: 10;");
+                                makeButtonAnimated(personalBtn, true);
+                                personalBtn.setOnAction(e -> startQuizSession(true));
+                            } else {
+                                personalBtn.setText("⭐ My Favorites (Star at least 3 movies)");
+                            }
+                        } else {
+                            personalBtn.setText("⭐ My Favorites (Error)");
+                        }
+                    });
+                } catch (Exception ex) {
+                    Platform.runLater(() -> {
+                        personalBtn.setText("⭐ My Favorites (Connection Error)");
+                    });
+                }
+            }).start();
+        } else {
+            personalBtn.setDisable(true);
+            personalBtn.setText("⭐ My Favorites (Login Required)");
+            personalBtn.setStyle("-fx-background-color: #555; -fx-text-fill: #aaa; -fx-font-size: 18px; -fx-padding: 15 30; -fx-background-radius: 10;");
+        }
+
+        VBox layout = new VBox(30, title, generalBtn, personalBtn);
+        layout.setAlignment(Pos.CENTER);
+        root.setCenter(layout);
     }
 
     private boolean isMovieStarred(Long tmdbId) {

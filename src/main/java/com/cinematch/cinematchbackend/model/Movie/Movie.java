@@ -1,5 +1,6 @@
-package com.cinematch.cinematchbackend.model;
+package com.cinematch.cinematchbackend.model.Movie;
 
+import com.cinematch.cinematchbackend.model.Comments_Reviews.Review;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
@@ -38,10 +39,38 @@ public class Movie {
     @JsonProperty("reviews")
     private ReviewsContainer reviews;
 
+    @JsonProperty("budget")
+    private long budget;
+
+    @JsonProperty("revenue")
+    private long revenue;
+
+    @JsonProperty("runtime")
+    private int runtime;
+
+    @JsonProperty("cast")
+    private List<CastMember> cast;
+
     @Data
     public static class ReviewsContainer {
         @JsonProperty("results")
         private List<Review> results;
+    }
+
+    @Data
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public static class CastMember {
+        @JsonProperty("name")
+        @com.google.gson.annotations.SerializedName("name")
+        private String name;
+
+        @JsonProperty("character")
+        @com.google.gson.annotations.SerializedName("character")
+        private String character;
+
+        @JsonProperty("profile_path")
+        @com.google.gson.annotations.SerializedName("profile_path")
+        private String profilePath;
     }
 
 }

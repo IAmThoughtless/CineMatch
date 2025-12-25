@@ -1,9 +1,9 @@
 package com.cinematch.cinematchbackend.controller;
 
-import com.cinematch.cinematchbackend.model.Movie;
-import com.cinematch.cinematchbackend.model.MovieResponse;
-import com.cinematch.cinematchbackend.model.MovieWithReviews;
-import com.cinematch.cinematchbackend.model.UserReview;
+import com.cinematch.cinematchbackend.model.Movie.Movie;
+import com.cinematch.cinematchbackend.model.Movie.MovieResponse;
+import com.cinematch.cinematchbackend.model.Movie.MovieWithReviews;
+import com.cinematch.cinematchbackend.model.Comments_Reviews.UserReview;
 import com.cinematch.cinematchbackend.services.UserReviewService;
 import com.cinematch.cinematchbackend.services.MovieService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -56,6 +56,13 @@ public class MovieController {
     @GetMapping("/genre/{genreId}")
     public ResponseEntity<MovieResponse> getMoviesByGenre(@PathVariable int genreId) {
         MovieResponse ds = movieService.fetchByGenre(genreId);
+        return ResponseEntity.ok(ds);
+    }
+
+    @CrossOrigin(origins = "*")
+    @GetMapping("/suggestions/{userId}")
+    public ResponseEntity<MovieResponse> getSuggestions(@PathVariable Long userId) {
+        MovieResponse ds = movieService.getSuggestions(userId);
         return ResponseEntity.ok(ds);
     }
 }

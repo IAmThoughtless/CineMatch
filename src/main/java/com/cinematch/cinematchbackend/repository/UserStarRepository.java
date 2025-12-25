@@ -1,6 +1,6 @@
 package com.cinematch.cinematchbackend.repository;
 
-import com.cinematch.cinematchbackend.model.UserStar;
+import com.cinematch.cinematchbackend.model.Star.UserStar;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
