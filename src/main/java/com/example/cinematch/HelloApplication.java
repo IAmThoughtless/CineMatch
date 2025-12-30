@@ -2149,7 +2149,7 @@ public class HelloApplication extends Application {
         resultsContainer.setAlignment(Pos.CENTER);
         resultsContainer.setPadding(new Insets(20));
         resultsContainer.setStyle("-fx-background-color: rgba(0, 0, 0, 0.3); -fx-background-radius: 10;");
-        resultsContainer.setMaxWidth(500);
+        resultsContainer.setMaxWidth(800); // Increased container width
         resultsContainer.setVisible(false);
 
         // Find Similar Actor Button
@@ -2232,7 +2232,8 @@ public class HelloApplication extends Application {
                             resultLabel.setStyle("-fx-text-fill: white; -fx-font-size: 16px; -fx-font-weight: bold;");
                             resultLabel.setWrapText(true);
                             resultLabel.setTextAlignment(TextAlignment.CENTER);
-                            resultLabel.setMaxWidth(450);
+                            resultLabel.setAlignment(Pos.CENTER); // Ensure label content is centered
+                            resultLabel.setMaxWidth(750); // Increased width
                             
                             resultsContainer.getChildren().add(resultLabel);
                             resultsContainer.setVisible(true);
