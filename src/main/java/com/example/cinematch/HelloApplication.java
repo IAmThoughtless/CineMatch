@@ -2227,26 +2227,14 @@ public class HelloApplication extends Application {
                             resultsTitle.setStyle("-fx-text-fill: #E50914; -fx-font-size: 20px; -fx-font-weight: bold;");
                             resultsContainer.getChildren().add(resultsTitle);
 
-                            // Parse JSON response
-                            JsonArray resultsArray = JsonParser.parseString(response.body()).getAsJsonArray();
-
-                            if (resultsArray.size() == 0) {
-                                Label noResults = new Label("No matches found. Try a different image.");
-                                noResults.setStyle("-fx-text-fill: #cccccc;");
-                                resultsContainer.getChildren().add(noResults);
-                            } else {
-                                int displayLimit = Math.min(5, resultsArray.size());
-                                for (int i = 0; i < displayLimit; i++) {
-                                    JsonObject match = resultsArray.get(i).getAsJsonObject();
-                                    String actorName = match.get("label").getAsString();
-                                    double score = match.get("score").getAsDouble();
-                                    int percentage = (int) (score * 100);
-
-                                    HBox resultRow = createSimilarityResultRow(i + 1, actorName, percentage);
-                                    resultsContainer.getChildren().add(resultRow);
-                                }
-                            }
-
+                            // Display string result directly
+                            Label resultLabel = new Label(response.body());
+                            resultLabel.setStyle("-fx-text-fill: white; -fx-font-size: 16px; -fx-font-weight: bold;");
+                            resultLabel.setWrapText(true);
+                            resultLabel.setTextAlignment(TextAlignment.CENTER);
+                            resultLabel.setMaxWidth(450);
+                            
+                            resultsContainer.getChildren().add(resultLabel);
                             resultsContainer.setVisible(true);
                         } else {
                             statusLabel.setStyle("-fx-text-fill: #E50914;");
@@ -2283,33 +2271,8 @@ public class HelloApplication extends Application {
         root.setCenter(scrollPane);
     }
 
-    private HBox createSimilarityResultRow(int rank, String actorName, int percentage) {
-        Label rankLabel = new Label(rank + ".");
-        rankLabel.setStyle("-fx-text-fill: #E50914; -fx-font-size: 16px; -fx-font-weight: bold;");
-        rankLabel.setMinWidth(30);
 
-        Label nameLabel = new Label(actorName);
-        nameLabel.setStyle("-fx-text-fill: white; -fx-font-size: 16px; -fx-font-weight: bold;");
-        nameLabel.setMinWidth(180);
-        nameLabel.setMaxWidth(180);
 
-        // Progress bar for similarity
-        ProgressBar progressBar = new ProgressBar(percentage / 100.0);
-        progressBar.setPrefWidth(150);
-        progressBar.setPrefHeight(20);
-        progressBar.setStyle("-fx-accent: #E50914;");
-
-        Label percentLabel = new Label(percentage + "%");
-        percentLabel.setStyle("-fx-text-fill: #E50914; -fx-font-size: 14px; -fx-font-weight: bold;");
-        percentLabel.setMinWidth(50);
-
-        HBox row = new HBox(15, rankLabel, nameLabel, progressBar, percentLabel);
-        row.setAlignment(Pos.CENTER_LEFT);
-        row.setPadding(new Insets(10));
-        row.setStyle("-fx-background-color: rgba(255, 255, 255, 0.05); -fx-background-radius: 5;");
-
-        return row;
-    }
 
     public static void main(String[] args) {
         launch();
