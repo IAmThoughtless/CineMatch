@@ -1,14 +1,15 @@
 package com.cinematch.cinematchbackend.services;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
+import org.springframework.security.web.webauthn.api.Bytes;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
-import org.springframework.web.multipart.MultipartFile;
+import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestClient;
+import org.springframework.http.MediaType;
+
+import java.util.Base64;
+import java.util.List;
+import java.util.Map;
 
 import java.io.IOException;
 import java.util.List;
@@ -17,33 +18,67 @@ import java.util.List;
 
 @Service
 public class AIService {
-    @Value("${huggingface.api.key}")
-    private String apiToken;
 
-    private static final String API_URL = "https://router.huggingface.co/hf-inference/models/dima806/celebs_face_image_detection";
-    private final RestTemplate restTemplate = new RestTemplate();
+    private static final String API_URL = "https://router.huggingface.co/v1/chat/completions";
+    private static final String MODEL_ID = "Qwen/Qwen2.5-VL-7B-Instruct";
 
-    public List<?> analyzeImage(MultipartFile file) throws IOException {
-        // 1. Setup Headers
-        HttpHeaders headers = new HttpHeaders();
-        headers.setBearerAuth(apiToken);
-        headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
-        // Wait for model to load if it's cold (can take up to 20 seconds on first request)
-        headers.set("x-wait-for-model", "true");
-
-        // 2. Create the Request Entity with image bytes
-        HttpEntity<byte[]> requestEntity = new HttpEntity<>(file.getBytes(), headers);
-
-        // 3. Send POST request
-        // We use ParameterizedTypeReference because the response is a List<CelebrityMatch>
-        ResponseEntity<List<?>> response = restTemplate.exchange(
-                API_URL,
-                HttpMethod.POST,
-                requestEntity,
-                new ParameterizedTypeReference<List<?>>() {}
-        );
-
-        return response.getBody();
+    private final RestClient restClient;
+    public AIService(@Value("${huggingface.api.key}") String apiKey, RestClient.Builder builder) {
+        this.restClient = builder
+                .baseUrl(API_URL)
+                .defaultHeader("Authorization", "Bearer " + apiKey)
+                .build();
     }
 
+    public String analyzeImage(byte[] imageBytes) throws IOException {
+        // 1. Setup Headers
+        // 1. Convert Raw Bytes -> Base64 String
+        String base64String = Base64.getEncoder().encodeToString(imageBytes);
+
+        // 2. Format as Data URI (Strictly required by the API)
+        // Assumes JPEG/PNG. If strictly PNG, change to image/png.
+        String dataUri = "data:image/jpeg;base64," + base64String;
+
+        // 3. Construct JSON Payload
+        var payload = Map.of(
+                "model", MODEL_ID,
+                "messages", List.of(
+                        Map.of(
+                                "role", "user",
+                                "content", List.of(
+                                        Map.of(
+                                                "type", "text",
+                                                "text", "Who is the celebrity in this image? Return ONLY the name and the similarity percentage."
+                                        ),
+                                        Map.of(
+                                                "type", "image_url",
+                                                "image_url", Map.of("url", dataUri) // <-- The Base64 goes here
+                                        )
+                                )
+                        )
+                ),
+                "max_tokens", 50
+        );
+
+        // 4. Send Request
+        Map response = restClient.post()
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(payload)
+                .retrieve()
+                .body(Map.class);
+
+        // 5. Extract Answer
+        return extractContent(response);
+    }
+
+    private String extractContent(Map response) {
+        try {
+            List<Map> choices = (List<Map>) response.get("choices");
+            if (choices == null || choices.isEmpty()) return "No match found";
+            Map message = (Map) choices.get(0).get("message");
+            return (String) message.get("content");
+        } catch (Exception e) {
+            return "Parsing Error";
+        }
+    }
 }

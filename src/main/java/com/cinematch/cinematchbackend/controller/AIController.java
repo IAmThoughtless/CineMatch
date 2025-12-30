@@ -21,13 +21,13 @@ public class AIController {
     private AIService aiService;
 
     @PostMapping("/actor-similarity")
-    public ResponseEntity<?> imageSimilarity(
+    public ResponseEntity<String> imageSimilarity(
             @RequestParam("userId") Long userId,
             @RequestParam(value = "image", required = false) MultipartFile image) throws IOException {
 
         try {
-            List<?> matches = aiService.analyzeImage(image);
-            return ResponseEntity.ok(matches);
+            String result = aiService.analyzeImage(image.getBytes());
+            return ResponseEntity.ok(result);
         } catch (Exception e) {
             // This handles the "Model Loading" error or bad keys
             return ResponseEntity.status(500).body("Error processing image: " + e.getMessage());
