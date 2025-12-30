@@ -9,6 +9,9 @@ public class UserSession {
     private String username;
     private Long userId;
 
+    private String returnToUrl;
+
+
     // Private constructor so nobody can make a new instance manually
     private UserSession() {}
 
@@ -21,6 +24,15 @@ public class UserSession {
     }
 
     // 4. Getters and Setters
+
+    public String getReturnToUrl() {
+        return returnToUrl;
+    }
+
+    public void setReturnToUrl(String returnToUrl) {
+        this.returnToUrl = returnToUrl;
+    }
+
     public String getUsername() {
         return username;
     }
@@ -41,6 +53,7 @@ public class UserSession {
     public void cleanUserSession() {
         username = null;
         userId = null;
+        returnToUrl = null; // Καθαρίζουμε και το URL κατά το Logout
     }
 
     public boolean isLoggedIn() {

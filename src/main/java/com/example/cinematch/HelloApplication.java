@@ -955,6 +955,12 @@ public class HelloApplication extends Application {
         // Check if user is logged in using our new Session class
         if (UserSession.getInstance().isLoggedIn()) {
 
+            // AI Integration Button
+            Button aiIntegrationBtn = new Button("AI Integration");
+            aiIntegrationBtn.setStyle("-fx-background-color: transparent; -fx-text-fill: white; -fx-font-size: 14px; -fx-font-weight: bold; -fx-cursor: hand;");
+            aiIntegrationBtn.setOnAction(event -> showAIIntegrationView());
+            makeButtonAnimated(aiIntegrationBtn, false);
+
             // 1. Show "My Stars" Button
             Button myStarsBtn = new Button("My Stars");
             myStarsBtn.setStyle("-fx-background-color: transparent; -fx-text-fill: white; -fx-font-size: 14px; -fx-font-weight: bold; -fx-cursor: hand;");
@@ -979,7 +985,7 @@ public class HelloApplication extends Application {
                 showHomeView(); // Refresh view
             });
 
-            header.getChildren().addAll(myStarsBtn, suggestionsBtn, welcomeUser, logoutBtn);
+            header.getChildren().addAll(aiIntegrationBtn, myStarsBtn, suggestionsBtn, welcomeUser, logoutBtn);
 
         } else {
             // 4. If NOT logged in, show Login Button
@@ -2087,6 +2093,187 @@ public class HelloApplication extends Application {
         }
         return false;
     }
+
+    private void showAIIntegrationView() {
+        root.setTop(createHeader());
+
+        // Title Section
+        Label titleLabel = new Label("🎬 AI Actor Matcher");
+        titleLabel.setStyle("-fx-text-fill: #E50914; -fx-font-size: 32px; -fx-font-weight: bold;");
+
+        Label descriptionLabel = new Label("Upload your photo to find which celebrity you look like the most!");
+        descriptionLabel.setStyle("-fx-text-fill: #cccccc; -fx-font-size: 16px;");
+        descriptionLabel.setWrapText(true);
+        descriptionLabel.setMaxWidth(500);
+        descriptionLabel.setTextAlignment(TextAlignment.CENTER);
+
+        // Image Preview
+        ImageView previewImageView = new ImageView();
+        previewImageView.setFitWidth(200);
+        previewImageView.setFitHeight(200);
+        previewImageView.setPreserveRatio(true);
+        previewImageView.setStyle("-fx-background-color: #333;");
+
+        StackPane previewContainer = new StackPane(previewImageView);
+        previewContainer.setStyle("-fx-background-color: #333; -fx-background-radius: 10; -fx-border-color: #555; -fx-border-radius: 10; -fx-border-width: 2;");
+        previewContainer.setPrefSize(220, 220);
+        previewContainer.setMaxSize(220, 220);
+
+        Label placeholderLabel = new Label("No image selected");
+        placeholderLabel.setStyle("-fx-text-fill: #888;");
+        previewContainer.getChildren().add(placeholderLabel);
+
+        // File selection
+        final File[] selectedFile = {null};
+        Label selectedFileLabel = new Label("");
+        selectedFileLabel.setStyle("-fx-text-fill: #cccccc; -fx-font-size: 12px;");
+
+        Button selectImageBtn = new Button("📁 Select Image");
+        selectImageBtn.setStyle("-fx-background-color: #333; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: 5; -fx-padding: 10 20;");
+        selectImageBtn.setOnAction(e -> {
+            FileChooser fc = new FileChooser();
+            fc.setTitle("Select an Image");
+            fc.getExtensionFilters().add(new FileChooser.ExtensionFilter("Images", "*.png", "*.jpg", "*.jpeg", "*.gif"));
+            File file = fc.showOpenDialog(root.getScene().getWindow());
+            if (file != null) {
+                selectedFile[0] = file;
+                selectedFileLabel.setText(file.getName());
+                Image previewImage = new Image(file.toURI().toString(), 200, 200, true, true);
+                previewImageView.setImage(previewImage);
+                placeholderLabel.setVisible(false);
+            }
+        });
+
+        // Results container
+        VBox resultsContainer = new VBox(15);
+        resultsContainer.setAlignment(Pos.CENTER);
+        resultsContainer.setPadding(new Insets(20));
+        resultsContainer.setStyle("-fx-background-color: rgba(0, 0, 0, 0.3); -fx-background-radius: 10;");
+        resultsContainer.setMaxWidth(800); // Increased container width
+        resultsContainer.setVisible(false);
+
+        // Find Similar Actor Button
+        Button findActorBtn = new Button("🔍 Find Similar Actor");
+        findActorBtn.setStyle("-fx-background-color: #E50914; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 16px; -fx-cursor: hand; -fx-background-radius: 5; -fx-padding: 15 30;");
+        makeButtonAnimated(findActorBtn, true);
+
+        ProgressIndicator progressIndicator = new ProgressIndicator();
+        progressIndicator.setVisible(false);
+        progressIndicator.setMaxSize(40, 40);
+
+        Label statusLabel = new Label("");
+        statusLabel.setStyle("-fx-text-fill: #cccccc;");
+
+        findActorBtn.setOnAction(e -> {
+            if (selectedFile[0] == null) {
+                statusLabel.setStyle("-fx-text-fill: #E50914;");
+                statusLabel.setText("Please select an image first!");
+                return;
+            }
+
+            findActorBtn.setDisable(true);
+            progressIndicator.setVisible(true);
+            statusLabel.setStyle("-fx-text-fill: #cccccc;");
+            statusLabel.setText("Analyzing image...");
+            resultsContainer.setVisible(false);
+
+            new Thread(() -> {
+                try {
+                    // Build multipart request
+                    String boundary = "----WebKitFormBoundary" + System.currentTimeMillis();
+                    String lineFeed = "\r\n";
+
+                    StringBuilder multipartBody = new StringBuilder();
+
+                    // Add userId field
+                    multipartBody.append("--").append(boundary).append(lineFeed);
+                    multipartBody.append("Content-Disposition: form-data; name=\"userId\"").append(lineFeed);
+                    multipartBody.append(lineFeed);
+                    multipartBody.append(UserSession.getInstance().getUserId()).append(lineFeed);
+
+                    // Add file field header
+                    multipartBody.append("--").append(boundary).append(lineFeed);
+                    multipartBody.append("Content-Disposition: form-data; name=\"image\"; filename=\"").append(selectedFile[0].getName()).append("\"").append(lineFeed);
+                    multipartBody.append("Content-Type: application/octet-stream").append(lineFeed);
+                    multipartBody.append(lineFeed);
+
+                    byte[] headerBytes = multipartBody.toString().getBytes(StandardCharsets.UTF_8);
+                    byte[] fileBytes = Files.readAllBytes(selectedFile[0].toPath());
+                    byte[] footerBytes = (lineFeed + "--" + boundary + "--" + lineFeed).getBytes(StandardCharsets.UTF_8);
+
+                    byte[] requestBody = new byte[headerBytes.length + fileBytes.length + footerBytes.length];
+                    System.arraycopy(headerBytes, 0, requestBody, 0, headerBytes.length);
+                    System.arraycopy(fileBytes, 0, requestBody, headerBytes.length, fileBytes.length);
+                    System.arraycopy(footerBytes, 0, requestBody, headerBytes.length + fileBytes.length, footerBytes.length);
+
+                    HttpClient client = HttpClient.newHttpClient();
+                    HttpRequest request = HttpRequest.newBuilder()
+                            .uri(URI.create("http://localhost:8080/api/ai/actor-similarity"))
+                            .header("Content-Type", "multipart/form-data; boundary=" + boundary)
+                            .POST(HttpRequest.BodyPublishers.ofByteArray(requestBody))
+                            .build();
+
+                    HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+                    Platform.runLater(() -> {
+                        progressIndicator.setVisible(false);
+                        findActorBtn.setDisable(false);
+
+                        if (response.statusCode() == 200) {
+                            statusLabel.setText("");
+                            resultsContainer.getChildren().clear();
+
+                            Label resultsTitle = new Label("🎭 Actor Similarity Results");
+                            resultsTitle.setStyle("-fx-text-fill: #E50914; -fx-font-size: 20px; -fx-font-weight: bold;");
+                            resultsContainer.getChildren().add(resultsTitle);
+
+                            // Display string result directly
+                            Label resultLabel = new Label(response.body());
+                            resultLabel.setStyle("-fx-text-fill: white; -fx-font-size: 16px; -fx-font-weight: bold;");
+                            resultLabel.setWrapText(true);
+                            resultLabel.setTextAlignment(TextAlignment.CENTER);
+                            resultLabel.setAlignment(Pos.CENTER); // Ensure label content is centered
+                            resultLabel.setMaxWidth(750); // Increased width
+                            
+                            resultsContainer.getChildren().add(resultLabel);
+                            resultsContainer.setVisible(true);
+                        } else {
+                            statusLabel.setStyle("-fx-text-fill: #E50914;");
+                            statusLabel.setText("Error: " + response.body());
+                        }
+                    });
+
+                } catch (Exception ex) {
+                    Platform.runLater(() -> {
+                        progressIndicator.setVisible(false);
+                        findActorBtn.setDisable(false);
+                        statusLabel.setStyle("-fx-text-fill: #E50914;");
+                        statusLabel.setText("Connection error: " + ex.getMessage());
+                    });
+                }
+            }).start();
+        });
+
+        // Layout
+        VBox uploadSection = new VBox(15, previewContainer, selectImageBtn, selectedFileLabel);
+        uploadSection.setAlignment(Pos.CENTER);
+
+        VBox actionSection = new VBox(15, findActorBtn, progressIndicator, statusLabel);
+        actionSection.setAlignment(Pos.CENTER);
+
+        VBox mainContent = new VBox(30, titleLabel, descriptionLabel, uploadSection, actionSection, resultsContainer);
+        mainContent.setAlignment(Pos.TOP_CENTER);
+        mainContent.setPadding(new Insets(40));
+
+        ScrollPane scrollPane = new ScrollPane(mainContent);
+        scrollPane.setFitToWidth(true);
+        scrollPane.setStyle("-fx-background: transparent; -fx-background-color: transparent;");
+
+        root.setCenter(scrollPane);
+    }
+
+
+
 
     public static void main(String[] args) {
         launch();
