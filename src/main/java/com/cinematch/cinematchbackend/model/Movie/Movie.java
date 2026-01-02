@@ -51,6 +51,10 @@ public class Movie {
     @JsonProperty("cast")
     private List<CastMember> cast;
 
+    @JsonProperty("trailer_key")
+    @com.google.gson.annotations.SerializedName("trailer_key")
+    private String trailerKey;
+
     @Data
     public static class ReviewsContainer {
         @JsonProperty("results")
@@ -71,6 +75,7 @@ public class Movie {
         @JsonProperty("profile_path")
         @com.google.gson.annotations.SerializedName("profile_path")
         private String profilePath;
+
     }
 
 }

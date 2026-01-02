@@ -1421,7 +1421,7 @@ public class HelloApplication extends Application {
         factsGrid.setHgap(30); factsGrid.setVgap(10);
         factsGrid.setPadding(new Insets(10, 0, 10, 0));
 
-        // Cast Section
+        // Cast Section (Με βελάκια)
         VBox castSection = new VBox(15);
         Label castHeader = new Label("Top Cast");
         castHeader.setStyle("-fx-text-fill: #E50914; -fx-font-size: 24px; -fx-font-weight: bold;");
@@ -1446,9 +1446,15 @@ public class HelloApplication extends Application {
         overviewLabel.setStyle("-fx-text-fill: white; -fx-font-size: 18px;");
         overviewLabel.setWrapText(true); overviewLabel.setMaxWidth(600);
 
-        // Star Button
+        // --- BUTTONS SETUP ---
         Button starBtn = new Button("Loading...");
         starBtn.setDisable(true);
+
+        Button trailerBtn = new Button("🎬 Watch Trailer");
+        trailerBtn.setStyle("-fx-background-color: #333333; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: 5; -fx-padding: 8 15 8 15;");
+        trailerBtn.setVisible(false);
+        trailerBtn.setManaged(false);
+
         if (UserSession.getInstance().isLoggedIn()) {
             new Thread(() -> {
                 boolean isStarred = isMovieStarred(initialMovieData.getId());
@@ -1460,12 +1466,15 @@ public class HelloApplication extends Application {
             }).start();
         } else {
             starBtn.setText("⭐ Star Movie");
-            starBtn.setStyle("-fx-background-color: #E50914; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: 5;");
+            starBtn.setStyle("-fx-background-color: #E50914; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: 5; -fx-padding: 8 15 8 15;");
             starBtn.setDisable(false);
             starBtn.setOnAction(ev -> showLoginView());
         }
 
-        VBox infoBox = new VBox(20, titleLabel, metaLabel, factsGrid, overviewLabel, starBtn);
+        HBox actionButtons = new HBox(15, starBtn, trailerBtn);
+        actionButtons.setAlignment(Pos.CENTER_LEFT);
+
+        VBox infoBox = new VBox(20, titleLabel, metaLabel, factsGrid, overviewLabel, actionButtons);
         infoBox.setAlignment(Pos.CENTER_LEFT);
         HBox topContent = new HBox(40, posterView, infoBox);
         topContent.setAlignment(Pos.CENTER);
@@ -1490,26 +1499,18 @@ public class HelloApplication extends Application {
         loadingCommentsLabel.setStyle("-fx-text-fill: gray; -fx-font-style: italic;");
         commentsContainer.getChildren().addAll(commentsHeader, commentsBox, loadingCommentsLabel);
 
-        // Comment Input
+        // Comment Input (Με έλεγχο login)
         TextArea commentTextArea = new TextArea();
         commentTextArea.setPromptText("Write your comment here...");
         commentTextArea.setWrapText(true); commentTextArea.setPrefHeight(100);
         commentTextArea.setStyle("-fx-control-inner-background:#333; -fx-prompt-text-fill: white; -fx-text-fill: white; -fx-background-radius: 5;");
-
-        commentTextArea.setOnMouseClicked(e -> {
-            if (!UserSession.getInstance().isLoggedIn()) {
-                showLoginView();
-            }
-        });
+        commentTextArea.setOnMouseClicked(e -> { if (!UserSession.getInstance().isLoggedIn()) showLoginView(); });
 
         Button uploadImageBtn = new Button("Upload Image");
         Label selectedImageLabel = new Label("No image selected");
         selectedImageLabel.setStyle("-fx-text-fill: #cccccc;");
         uploadImageBtn.setOnAction(e -> {
-            if (!UserSession.getInstance().isLoggedIn()) {
-                showLoginView();
-                return;
-            }
+            if (!UserSession.getInstance().isLoggedIn()) { showLoginView(); return; }
             FileChooser fc = new FileChooser();
             fc.getExtensionFilters().add(new FileChooser.ExtensionFilter("Images", "*.png", "*.jpg", "*.jpeg", "*.gif"));
             File file = fc.showOpenDialog(root.getScene().getWindow());
@@ -1518,10 +1519,7 @@ public class HelloApplication extends Application {
         Button submitCommentBtn = new Button("Submit Comment");
         submitCommentBtn.setStyle("-fx-background-color: #E50914; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: 5;");
         submitCommentBtn.setOnAction(e -> {
-            if (!UserSession.getInstance().isLoggedIn()) {
-                showLoginView();
-                return;
-            }
+            if (!UserSession.getInstance().isLoggedIn()) { showLoginView(); return; }
             String text = commentTextArea.getText();
             if (text != null && !text.trim().isEmpty()) {
                 submitComment(initialMovieData, text, selectedImageFile);
@@ -1538,21 +1536,40 @@ public class HelloApplication extends Application {
 
         root.setCenter(new VBox(20, backBtn, scrollPane));
 
-        // --- API LOADING (MOVIE DETAILS & REVIEWS) ---
+        // --- API LOADING (MOVIE DETAILS & TRAILER) ---
         new Thread(() -> {
             try (HttpClient client = HttpClient.newHttpClient()) {
                 HttpRequest request = HttpRequest.newBuilder().uri(URI.create("http://localhost:8080/api/movie/" + initialMovieData.getId())).GET().build();
                 HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
                 Platform.runLater(() -> {
                     if (response.statusCode() == 200) {
+                        com.google.gson.JsonObject rootObj = gson.fromJson(response.body(), com.google.gson.JsonObject.class);
                         MovieWithReviews movieWithReviews = gson.fromJson(response.body(), MovieWithReviews.class);
                         Movie fullMovie = movieWithReviews.getMovie();
 
+                        // Ανάκτηση Trailer Key (Διπλός έλεγχος)
+                        String tKey = fullMovie.getTrailerKey();
+                        if (tKey == null && rootObj.has("movie")) {
+                            com.google.gson.JsonObject mObj = rootObj.getAsJsonObject("movie");
+                            if (mObj.has("trailer_key")) {
+                                tKey = mObj.get("trailer_key").getAsString();
+                            }
+                        }
+
+                        if (tKey != null && !tKey.isEmpty()) {
+                            final String finalKey = tKey;
+                            trailerBtn.setVisible(true);
+                            trailerBtn.setManaged(true);
+                            trailerBtn.setOnAction(ev -> getHostServices().showDocument("https://www.youtube.com/watch?v=" + finalKey));
+                        }
+
+                        // Facts Update
                         factsGrid.getChildren().clear();
                         if (fullMovie.getBudget() > 0) factsGrid.add(createFactBox("Budget", String.format("$%,d", fullMovie.getBudget())), 0, 0);
                         if (fullMovie.getRevenue() > 0) factsGrid.add(createFactBox("Revenue", String.format("$%,d", fullMovie.getRevenue())), 1, 0);
                         if (fullMovie.getRuntime() > 0) factsGrid.add(createFactBox("Runtime", fullMovie.getRuntime() + " min"), 0, 1);
 
+                        // Cast Update
                         castBox.getChildren().clear();
                         if (fullMovie.getCast() != null) {
                             for (Movie.CastMember actor : fullMovie.getCast()) castBox.getChildren().add(createActorCard(actor));
@@ -1562,7 +1579,7 @@ public class HelloApplication extends Application {
                         reviewsContainer.getChildren().remove(loadingReviewsLabel);
                         userReviewsBox.getChildren().clear();
 
-                        // Λογική Read More για TMDB Reviews
+                        // TMDB Reviews with Read More
                         if (fullMovie.getReviews() != null && fullMovie.getReviews().getResults() != null) {
                             for (Review r : fullMovie.getReviews().getResults()) {
                                 VBox rb = new VBox(5);
@@ -1598,7 +1615,7 @@ public class HelloApplication extends Application {
             } catch (Exception ex) { ex.printStackTrace(); }
         }).start();
 
-        // --- LOAD COMMENTS THREAD ---
+        // --- LOAD USER COMMENTS ---
         new Thread(() -> {
             try (HttpClient client = HttpClient.newHttpClient()) {
                 HttpRequest request = HttpRequest.newBuilder().uri(URI.create("http://localhost:8080/api/comments/movie/" + initialMovieData.getId())).GET().build();
