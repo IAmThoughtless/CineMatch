@@ -64,6 +64,10 @@ public class Movie {
     @Data
     @JsonIgnoreProperties(ignoreUnknown = true)
     public static class CastMember {
+        @JsonProperty("id")
+        @com.google.gson.annotations.SerializedName("id")
+        private int id;
+
         @JsonProperty("name")
         @com.google.gson.annotations.SerializedName("name")
         private String name;

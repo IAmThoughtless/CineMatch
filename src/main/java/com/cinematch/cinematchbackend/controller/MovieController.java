@@ -65,4 +65,11 @@ public class MovieController {
         MovieResponse ds = movieService.getSuggestions(userId);
         return ResponseEntity.ok(ds);
     }
+
+    @CrossOrigin(origins = "*")
+    @GetMapping("/actor/{actorId}")
+    public ResponseEntity<MovieResponse> getMoviesByActor(@PathVariable int actorId) {
+        MovieResponse ds = movieService.fetchMoviesByActor(actorId);
+        return ResponseEntity.ok(ds);
+    }
 }

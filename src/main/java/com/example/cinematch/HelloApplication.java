@@ -53,6 +53,9 @@ import java.util.Map;
 
 
 public class HelloApplication extends Application {
+    // Shared HttpClient to prevent resource exhaustion
+    private static final HttpClient client = HttpClient.newHttpClient();
+
     private VBox whatsHotContainer;
     private VBox lastMovieListView;
     private BorderPane root;
@@ -288,7 +291,7 @@ public class HelloApplication extends Application {
         targetContainer.getChildren().add(loadingBox);
 
         new Thread(() -> {
-            try (HttpClient client = HttpClient.newHttpClient()) {
+            try {
                 HttpRequest request = HttpRequest.newBuilder()
                         .uri(URI.create("http://localhost:8080/api/movie/genre/" + genreId))
                         .header("Content-Type", "application/json")
@@ -330,7 +333,7 @@ public class HelloApplication extends Application {
         targetContainer.getChildren().add(loadingBox);
 
         new Thread(() -> {
-            try (HttpClient client = HttpClient.newHttpClient()) {
+            try {
 
                 HttpRequest request = HttpRequest.newBuilder()
                         .uri(URI.create("http://localhost:8080/api/movie/whats-hot"))
@@ -375,7 +378,7 @@ public class HelloApplication extends Application {
         root.setCenter(loadingBox);
 
         new Thread(() -> {
-            try (HttpClient client = HttpClient.newHttpClient()) {
+            try {
                 HttpRequest request = HttpRequest.newBuilder()
                         .uri(URI.create("http://localhost:8080/api/movie/top-10"))
                         .header("Content-Type", "application/json")
@@ -448,7 +451,7 @@ public class HelloApplication extends Application {
             String password = passwordField.getText();
 
             new Thread(() -> {
-                try (HttpClient client = HttpClient.newHttpClient()) {
+                try {
                     User user = new User();
                     user.setUsername(username);
                     user.setPassword(password);
@@ -572,7 +575,7 @@ public class HelloApplication extends Application {
             }
 
             new Thread(() -> {
-                try (HttpClient client = HttpClient.newHttpClient()) {
+                try {
                     User newUser = new User();
                     newUser.setEmail(email);
                     newUser.setUsername(username);
@@ -841,7 +844,7 @@ public class HelloApplication extends Application {
         root.setCenter(loadingBox);
 
         new Thread(() -> {
-            try (HttpClient client = HttpClient.newHttpClient()) {
+            try {
                 String jsonBody = gson.toJson(query);
 
                 HttpRequest request = HttpRequest.newBuilder()
@@ -1019,7 +1022,7 @@ public class HelloApplication extends Application {
         root.setCenter(loadingBox);
 
         new Thread(() -> {
-            try (HttpClient client = HttpClient.newHttpClient()) {
+            try {
 
                 // URL choice depending on quiz type
                 String url;
@@ -1189,7 +1192,7 @@ public class HelloApplication extends Application {
 
     private void submitQuizScore() {
         new Thread(() -> {
-            try (HttpClient client = HttpClient.newHttpClient()) {
+            try {
                 String jsonBody = String.format("{\"userId\": %d, \"score\": %d, \"maxScore\": %d}",
                         UserSession.getInstance().getUserId(), score, TOTAL_QUESTIONS);
 
@@ -1215,7 +1218,7 @@ public class HelloApplication extends Application {
         root.setCenter(loadingBox);
 
         new Thread(() -> {
-            try (HttpClient client = HttpClient.newHttpClient()) {
+            try {
                 HttpRequest request = HttpRequest.newBuilder()
                         .uri(URI.create("http://localhost:8080/api/quiz/leaderboard"))
                         .header("Content-Type", "application/json")
@@ -1538,7 +1541,7 @@ public class HelloApplication extends Application {
 
         // --- API LOADING (MOVIE DETAILS & TRAILER) ---
         new Thread(() -> {
-            try (HttpClient client = HttpClient.newHttpClient()) {
+            try {
                 HttpRequest request = HttpRequest.newBuilder().uri(URI.create("http://localhost:8080/api/movie/" + initialMovieData.getId())).GET().build();
                 HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
                 Platform.runLater(() -> {
@@ -1617,7 +1620,7 @@ public class HelloApplication extends Application {
 
         // --- LOAD USER COMMENTS ---
         new Thread(() -> {
-            try (HttpClient client = HttpClient.newHttpClient()) {
+            try {
                 HttpRequest request = HttpRequest.newBuilder().uri(URI.create("http://localhost:8080/api/comments/movie/" + initialMovieData.getId())).GET().build();
                 HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
                 Platform.runLater(() -> {
@@ -1719,7 +1722,53 @@ public class HelloApplication extends Application {
         role.setTextAlignment(TextAlignment.CENTER);
 
         card.getChildren().addAll(actorImg, name, role);
+        card.setStyle("-fx-cursor: hand;");
+        card.setOnMouseClicked(e -> showMoviesByActor(actor));
         return card;
+    }
+
+    private void showMoviesByActor(Movie.CastMember actor) {
+        Label loadingLabel = new Label("Fetching movies for " + actor.getName() + "...");
+        loadingLabel.setStyle("-fx-text-fill: white; -fx-font-size: 24px;");
+        ProgressIndicator indicator = new ProgressIndicator();
+        VBox loadingBox = new VBox(20, loadingLabel, indicator);
+        loadingBox.setAlignment(Pos.CENTER);
+        root.setCenter(loadingBox);
+
+        new Thread(() -> {
+            try {
+                HttpRequest request = HttpRequest.newBuilder()
+                        .uri(URI.create("http://localhost:8080/api/movie/actor/" + actor.getId()))
+                        .header("Content-Type", "application/json")
+                        .build();
+
+                HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+                Platform.runLater(() -> {
+                    MovieResponse movies = gson.fromJson(response.body(), MovieResponse.class);
+
+                    if (response.statusCode() != 200 || movies == null || movies.results == null) {
+                        Label errorLabel = new Label("Could not fetch movies for actor. Check API key and network connection.");
+                        errorLabel.setStyle("-fx-text-fill: red; -fx-font-size: 18px;");
+                        VBox errorBox = new VBox(errorLabel);
+                        errorBox.setAlignment(Pos.CENTER);
+                        root.setCenter(errorBox);
+                    }
+                    else {
+                        VBox actorMoviesContent = buildMovieListUI("🎬 Movies with " + actor.getName() + " 🎬", movies);
+                        lastMovieListView = actorMoviesContent;
+                        root.setCenter(actorMoviesContent);
+                    }
+
+                });
+
+            } catch (Exception ex) {
+                Label errorLabel = new Label("Could not fetch movies for actor. Check API key and network connection.");
+                errorLabel.setStyle("-fx-text-fill: red; -fx-font-size: 18px;");
+                VBox errorBox = new VBox(errorLabel);
+                errorBox.setAlignment(Pos.CENTER);
+                root.setCenter(errorBox);
+            }
+        }).start();
     }
 
     private Button createScrollButton(String text) {
@@ -1737,7 +1786,7 @@ public class HelloApplication extends Application {
 
     private void submitReview(Movie movie, String reviewText) {
         new Thread(() -> {
-            try (HttpClient client = HttpClient.newHttpClient()) {
+            try {
                 UserReview review = new UserReview();
                 review.setTmdbId(movie.getId());
                 review.setReviewText(reviewText);
@@ -1804,7 +1853,6 @@ public class HelloApplication extends Application {
                     offset += part.length;
                 }
 
-                HttpClient client = HttpClient.newHttpClient();
                 HttpRequest request = HttpRequest.newBuilder()
                         .uri(URI.create("http://localhost:8080/api/comments/add"))
                         .header("Content-Type", "multipart/form-data; boundary=" + boundary)
@@ -1847,7 +1895,7 @@ public class HelloApplication extends Application {
         if (!UserSession.getInstance().isLoggedIn()) {
             return null;
         }
-        try (HttpClient client = HttpClient.newHttpClient()) {
+        try {
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create("http://localhost:8080/api/reviews/" + UserSession.getInstance().getUserId() + "/" + tmdbId))
                     .build();
@@ -1899,7 +1947,7 @@ public class HelloApplication extends Application {
         root.setCenter(loadingBox);
 
         new Thread(() -> {
-            try (HttpClient client = HttpClient.newHttpClient()) {
+            try {
                 HttpRequest request = HttpRequest.newBuilder()
                         .uri(URI.create("http://localhost:8080/api/v1/stars/" + UserSession.getInstance().getUserId()))
                         .header("Content-Type", "application/json")
@@ -1950,7 +1998,7 @@ public class HelloApplication extends Application {
         root.setCenter(loadingBox);
 
         new Thread(() -> {
-            try (HttpClient client = HttpClient.newHttpClient()) {
+            try {
                 HttpRequest request = HttpRequest.newBuilder()
                         .uri(URI.create("http://localhost:8080/api/movie/suggestions/" + UserSession.getInstance().getUserId()))
                         .header("Content-Type", "application/json")
@@ -1989,7 +2037,7 @@ public class HelloApplication extends Application {
 
     private void starMovie(Movie m) {
         new Thread(() -> {
-            try (HttpClient client = HttpClient.newHttpClient()) {
+            try {
                 UserStar star = new UserStar();
                 star.setTmdbId(m.getId());
                 star.setTitle(m.getTitle());
@@ -2015,7 +2063,7 @@ public class HelloApplication extends Application {
 
     private void unstarMovie(Long tmdbId) {
         new Thread(() -> {
-            try (HttpClient client = HttpClient.newHttpClient()) {
+            try {
                 HttpRequest request = HttpRequest.newBuilder()
                         .uri(URI.create("http://localhost:8080/api/v1/stars/" + UserSession.getInstance().getUserId() + "/" + tmdbId))
                         .DELETE()
@@ -2051,7 +2099,7 @@ public class HelloApplication extends Application {
             personalBtn.setStyle("-fx-background-color: #555; -fx-text-fill: #aaa; -fx-font-size: 18px; -fx-padding: 15 30; -fx-background-radius: 10;");
 
             new Thread(() -> {
-                try (HttpClient client = HttpClient.newHttpClient()) {
+                try {
                     HttpRequest request = HttpRequest.newBuilder()
                             .uri(URI.create("http://localhost:8080/api/v1/stars/" + UserSession.getInstance().getUserId()))
                             .header("Content-Type", "application/json")
@@ -2094,7 +2142,7 @@ public class HelloApplication extends Application {
     }
 
     private boolean isMovieStarred(Long tmdbId) {
-        try (HttpClient client = HttpClient.newHttpClient()) {
+        try {
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create("http://localhost:8080/api/v1/stars/" + UserSession.getInstance().getUserId() + "/" + tmdbId))
                     .build();
@@ -2223,7 +2271,6 @@ public class HelloApplication extends Application {
                     System.arraycopy(fileBytes, 0, requestBody, headerBytes.length, fileBytes.length);
                     System.arraycopy(footerBytes, 0, requestBody, headerBytes.length + fileBytes.length, footerBytes.length);
 
-                    HttpClient client = HttpClient.newHttpClient();
                     HttpRequest request = HttpRequest.newBuilder()
                             .uri(URI.create("http://localhost:8080/api/ai/actor-similarity"))
                             .header("Content-Type", "multipart/form-data; boundary=" + boundary)

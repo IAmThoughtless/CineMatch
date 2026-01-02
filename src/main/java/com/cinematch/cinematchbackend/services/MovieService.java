@@ -234,4 +234,46 @@ public class MovieService {
             return null;
         }
     }
+
+    public MovieResponse fetchMoviesByActor(int actorId) {
+        String url = "https://api.themoviedb.org/3/person/" + actorId + "/movie_credits?api_key=" + tmdbApiKey;
+
+        try (HttpClient client = HttpClient.newHttpClient()) {
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(url))
+                    .build();
+
+            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+            if (response.statusCode() != 200) {
+                System.err.println("Actor Movies API Request failed with status: " + response.statusCode());
+                return null;
+            }
+
+            Gson gson = new Gson();
+            // The response from /person/{id}/movie_credits has a "cast" field which is a list of movies.
+            // MovieResponse expects "results".
+            // We need to map "cast" to "results" or create a custom deserializer/DTO.
+            // However, MovieResponse has "results".
+            // Let's check the structure of movie_credits response.
+            // It returns { "cast": [ ... ], "crew": [ ... ], "id": ... }
+            // MovieResponse has "results".
+            // So we can't directly map it to MovieResponse unless we change MovieResponse or use a temporary object.
+            
+            com.google.gson.JsonObject jsonObject = gson.fromJson(response.body(), com.google.gson.JsonObject.class);
+            if (jsonObject.has("cast")) {
+                com.google.gson.JsonArray castArray = jsonObject.getAsJsonArray("cast");
+                // We can construct a JSON that matches MovieResponse structure: { "results": [ ... ] }
+                com.google.gson.JsonObject newJson = new com.google.gson.JsonObject();
+                newJson.add("results", castArray);
+                return gson.fromJson(newJson, MovieResponse.class);
+            }
+            
+            return new MovieResponse();
+
+        } catch (Exception e) {
+            System.err.println("Error during Actor Movies API call in MovieService: " + e.getMessage());
+            return null;
+        }
+    }
 }
