@@ -87,7 +87,8 @@ public class MovieService {
     public Movie getMovieDetails(Long movieId) {
         Movie movie = null;
         try {
-            String url = "https://api.themoviedb.org/3/movie/" + movieId + "?api_key=" + tmdbApiKey + "&append_to_response=reviews,credits";
+
+            String url = "https://api.themoviedb.org/3/movie/" + movieId + "?api_key=" + tmdbApiKey + "&append_to_response=reviews,credits,videos";
 
             try (HttpClient client = HttpClient.newHttpClient()) {
                 HttpRequest request = HttpRequest.newBuilder()
@@ -97,7 +98,7 @@ public class MovieService {
                 HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
 
                 if (response.statusCode() != 200) {
-                    System.err.println("Search API Request failed: " + response.statusCode());
+                    System.err.println("Movie Details API Request failed: " + response.statusCode());
                     return null;
                 }
 
@@ -105,6 +106,8 @@ public class MovieService {
                 movie = gson.fromJson(response.body(), Movie.class);
 
                 com.google.gson.JsonObject jsonObject = gson.fromJson(response.body(), com.google.gson.JsonObject.class);
+
+                // 2. Mapping για το Cast (Credits)
                 if (jsonObject.has("credits")) {
                     com.google.gson.JsonObject credits = jsonObject.getAsJsonObject("credits");
                     if (credits.has("cast")) {
@@ -114,10 +117,37 @@ public class MovieService {
                     }
                 }
 
-            }
+                // 3. Mapping για το Trailer (Videos)
+                if (jsonObject.has("videos")) {
+                    com.google.gson.JsonObject videosObj = jsonObject.getAsJsonObject("videos");
+                    if (videosObj.has("results")) {
+                        com.google.gson.JsonArray results = videosObj.getAsJsonArray("results");
 
+                        boolean trailerFound = false;
+                        for (com.google.gson.JsonElement el : results) {
+                            com.google.gson.JsonObject video = el.getAsJsonObject();
+
+                            // Ελέγχουμε αν είναι YouTube και αν ο τύπος είναι Trailer
+                            String site = video.has("site") ? video.get("site").getAsString() : "";
+                            String type = video.has("type") ? video.get("type").getAsString() : "";
+
+                            if (site.equalsIgnoreCase("YouTube") && type.equalsIgnoreCase("Trailer")) {
+                                String key = video.get("key").getAsString();
+                                movie.setTrailerKey(key);
+                                System.out.println("DEBUG BACKEND: Found Trailer Key [" + key + "] for movie: " + movie.getTitle());
+                                trailerFound = true;
+                                break;
+                            }
+                        }
+                        if (!trailerFound) {
+                            System.out.println("DEBUG BACKEND: No official YouTube Trailer found for: " + movie.getTitle());
+                        }
+                    }
+                }
+            }
         } catch (Exception e) {
-            System.err.println("Error during search: " + e.getMessage());
+            System.err.println("Error during getMovieDetails in MovieService: " + e.getMessage());
+            e.printStackTrace();
             return null;
         }
         return movie;

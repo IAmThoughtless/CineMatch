@@ -11,6 +11,9 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 public class MovieWithReviews {
+    @com.google.gson.annotations.SerializedName("movie")
     private Movie movie;
+
+    @com.google.gson.annotations.SerializedName("userReviews")
     private List<UserReview> userReviews;
 }
