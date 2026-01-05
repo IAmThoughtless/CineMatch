@@ -959,7 +959,7 @@ public class HelloApplication extends Application {
         if (UserSession.getInstance().isLoggedIn()) {
 
             // AI Integration Button
-            Button aiIntegrationBtn = new Button("AI Integration");
+            Button aiIntegrationBtn = new Button("Lookalike");
             aiIntegrationBtn.setStyle("-fx-background-color: transparent; -fx-text-fill: white; -fx-font-size: 14px; -fx-font-weight: bold; -fx-cursor: hand;");
             aiIntegrationBtn.setOnAction(event -> showAIIntegrationView());
             makeButtonAnimated(aiIntegrationBtn, false);
