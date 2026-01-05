@@ -228,6 +228,7 @@ public class HelloApplication extends Application {
     }
 
     private void showHomeView() {
+        lastMovieListView = null;
 
         root.setTop(createHeader());
         Label welcomeLabel = new Label("Welcome to CineMatch");
@@ -929,24 +930,40 @@ public class HelloApplication extends Application {
         shadow.setColor(Color.color(0, 0, 0, 0.5));
         logoLabel.setEffect(shadow);
 
+        // --- HOME BUTTON (Reset history) ---
         Button homeBtn = new Button("Home Page");
-        homeBtn.setOnAction(event -> showHomeView());
+        homeBtn.setOnAction(event -> {
+            lastMovieListView = null; // ΚΑΘΑΡΙΣΜΟΣ ΙΣΤΟΡΙΚΟΥ
+            showHomeView();
+        });
         homeBtn.setStyle("-fx-background-color: transparent; -fx-text-fill: white; -fx-font-size: 14px; -fx-font-weight: bold; -fx-cursor: hand;");
         makeButtonAnimated(homeBtn, false);
 
+        // --- TOP 10 BUTTON (Keep history) ---
         Button top10Btn = new Button("Top 10");
-        top10Btn.setOnAction(event -> showTop10View());
+        top10Btn.setOnAction(event -> {
+            // Εδώ ΔΕΝ βάζουμε null, γιατί θέλουμε το Back να μας γυρνάει στη λίστα του Top 10
+            showTop10View();
+        });
         top10Btn.setStyle("-fx-background-color: transparent; -fx-text-fill: white; -fx-font-size: 14px; -fx-font-weight: bold; -fx-cursor: hand;");
         makeButtonAnimated(top10Btn, false);
 
+        // --- QUIZ BUTTON (Reset history) ---
         Button quizBtn = new Button("Quiz");
         quizBtn.setStyle("-fx-background-color: transparent; -fx-text-fill: white; -fx-font-size: 14px; -fx-font-weight: bold; -fx-cursor: hand; ");
-        quizBtn.setOnAction(event -> showQuizSelectionView());
+        quizBtn.setOnAction(event -> {
+            lastMovieListView = null; // ΚΑΘΑΡΙΣΜΟΣ ΙΣΤΟΡΙΚΟΥ
+            showQuizSelectionView();
+        });
         makeButtonAnimated(quizBtn, false);
 
+        // --- LEADERBOARD BUTTON (Reset history) ---
         Button leaderboardBtn = new Button("Leaderboard");
         leaderboardBtn.setStyle("-fx-background-color: transparent; -fx-text-fill: white; -fx-font-size: 14px; -fx-font-weight: bold; -fx-cursor: hand; ");
-        leaderboardBtn.setOnAction(event -> showLeaderboardView());
+        leaderboardBtn.setOnAction(event -> {
+            lastMovieListView = null; // ΚΑΘΑΡΙΣΜΟΣ ΙΣΤΟΡΙΚΟΥ
+            showLeaderboardView();
+        });
         makeButtonAnimated(leaderboardBtn, false);
 
         Region spacer = new Region();
@@ -955,45 +972,53 @@ public class HelloApplication extends Application {
         HBox header = new HBox(15);
         header.getChildren().addAll(logoLabel, spacer, homeBtn, top10Btn, quizBtn, leaderboardBtn);
 
-        // Check if user is logged in using our new Session class
         if (UserSession.getInstance().isLoggedIn()) {
 
-            // AI Integration Button
+            // --- LOOKALAIKE BUTTON (Reset history) ---
             Button aiIntegrationBtn = new Button("Lookalike");
             aiIntegrationBtn.setStyle("-fx-background-color: transparent; -fx-text-fill: white; -fx-font-size: 14px; -fx-font-weight: bold; -fx-cursor: hand;");
-            aiIntegrationBtn.setOnAction(event -> showAIIntegrationView());
+            aiIntegrationBtn.setOnAction(event -> {
+                lastMovieListView = null; // ΚΑΘΑΡΙΣΜΟΣ ΙΣΤΟΡΙΚΟΥ
+                showAIIntegrationView();
+            });
             makeButtonAnimated(aiIntegrationBtn, false);
 
-            // 1. Show "My Stars" Button
+            // --- MY STARS BUTTON (Keep history) ---
             Button myStarsBtn = new Button("My Stars");
             myStarsBtn.setStyle("-fx-background-color: transparent; -fx-text-fill: white; -fx-font-size: 14px; -fx-font-weight: bold; -fx-cursor: hand;");
-            myStarsBtn.setOnAction(event -> showMyStarsView());
+            myStarsBtn.setOnAction(event -> {
+                // Εδώ το My Stars λειτουργεί σαν λίστα, άρα το αφήνουμε να ορίζεται μέσα στη showMyStarsView
+                showMyStarsView();
+            });
             makeButtonAnimated(myStarsBtn, false);
 
+            // --- SUGGESTIONS BUTTON (Keep history) ---
             Button suggestionsBtn = new Button("Suggestions");
             suggestionsBtn.setStyle("-fx-background-color: transparent; -fx-text-fill: white; -fx-font-size: 14px; -fx-font-weight: bold; -fx-cursor: hand;");
-            suggestionsBtn.setOnAction(event -> showSuggestionsView());
+            suggestionsBtn.setOnAction(event -> {
+                showSuggestionsView();
+            });
             makeButtonAnimated(suggestionsBtn, false);
 
-            // 2. Show Welcome Message
             Label welcomeUser = new Label("Welcome, " + UserSession.getInstance().getUsername());
             welcomeUser.setStyle("-fx-text-fill: #E50914; -fx-font-weight: bold; -fx-font-size: 14px;");
 
-
-            // 3. Show Logout Button
             Button logoutBtn = new Button("Logout");
             logoutBtn.setStyle("-fx-background-color: transparent; -fx-border-color: white; -fx-border-radius: 5; -fx-text-fill: white; -fx-cursor: hand;");
             logoutBtn.setOnAction(e -> {
-                UserSession.getInstance().cleanUserSession(); // Clear session
-                showHomeView(); // Refresh view
+                lastMovieListView = null; // ΚΑΘΑΡΙΣΜΟΣ ΙΣΤΟΡΙΚΟΥ
+                UserSession.getInstance().cleanUserSession();
+                showHomeView();
             });
 
             header.getChildren().addAll(aiIntegrationBtn, myStarsBtn, suggestionsBtn, welcomeUser, logoutBtn);
 
         } else {
-            // 4. If NOT logged in, show Login Button
             Button loginBtn = new Button("Login / Register");
-            loginBtn.setOnAction(event -> showLoginView());
+            loginBtn.setOnAction(event -> {
+                lastMovieListView = null; // ΚΑΘΑΡΙΣΜΟΣ ΙΣΤΟΡΙΚΟΥ
+                showLoginView();
+            });
             loginBtn.setStyle("-fx-background-color: #E50914; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: 5;");
             makeButtonAnimated(loginBtn, true);
 
