@@ -1575,7 +1575,7 @@ public class HelloApplication extends Application {
                         // Cast Update
                         castBox.getChildren().clear();
                         if (fullMovie.getCast() != null) {
-                            for (Movie.CastMember actor : fullMovie.getCast()) castBox.getChildren().add(createActorCard(actor));
+                            for (Movie.CastMember actor : fullMovie.getCast()) castBox.getChildren().add(createActorCard(actor, fullMovie));
                             if (!mainContent.getChildren().contains(castSection)) mainContent.getChildren().add(1, castSection);
                         }
 
@@ -1677,7 +1677,7 @@ public class HelloApplication extends Application {
         return new VBox(2, t, v);
     }
 
-    private VBox createActorCard(Movie.CastMember actor) {
+    private VBox createActorCard(Movie.CastMember actor, Movie currentMovie) {
         VBox card = new VBox(5);
         card.setAlignment(Pos.TOP_CENTER);
 
@@ -1723,15 +1723,22 @@ public class HelloApplication extends Application {
 
         card.getChildren().addAll(actorImg, name, role);
         card.setStyle("-fx-cursor: hand;");
-        card.setOnMouseClicked(e -> showMoviesByActor(actor));
+        card.setOnMouseClicked(e -> showMoviesByActor(actor, currentMovie));
         return card;
     }
 
-    private void showMoviesByActor(Movie.CastMember actor) {
+    private void showMoviesByActor(Movie.CastMember actor, Movie previousMovie) {
+        // 1. Δημιουργία του Back Button
+        Button backToMovieBtn = new Button("⬅ Back to " + previousMovie.getTitle());
+        backToMovieBtn.setStyle("-fx-background-color: transparent; -fx-text-fill: #E50914; -fx-font-size: 16px; -fx-font-weight: bold; -fx-cursor: hand;");
+        backToMovieBtn.setOnAction(e -> showMovieDetails(previousMovie));
+
         Label loadingLabel = new Label("Fetching movies for " + actor.getName() + "...");
         loadingLabel.setStyle("-fx-text-fill: white; -fx-font-size: 24px;");
         ProgressIndicator indicator = new ProgressIndicator();
-        VBox loadingBox = new VBox(20, loadingLabel, indicator);
+
+        // Εμφάνιση loading με το back button διαθέσιμο αμέσws
+        VBox loadingBox = new VBox(20, backToMovieBtn, loadingLabel, indicator);
         loadingBox.setAlignment(Pos.CENTER);
         root.setCenter(loadingBox);
 
@@ -1747,26 +1754,24 @@ public class HelloApplication extends Application {
                     MovieResponse movies = gson.fromJson(response.body(), MovieResponse.class);
 
                     if (response.statusCode() != 200 || movies == null || movies.results == null) {
-                        Label errorLabel = new Label("Could not fetch movies for actor. Check API key and network connection.");
+                        Label errorLabel = new Label("Could not fetch movies for actor.");
                         errorLabel.setStyle("-fx-text-fill: red; -fx-font-size: 18px;");
-                        VBox errorBox = new VBox(errorLabel);
-                        errorBox.setAlignment(Pos.CENTER);
-                        root.setCenter(errorBox);
-                    }
-                    else {
+                        root.setCenter(new VBox(20, backToMovieBtn, errorLabel));
+                    } else {
+                        // 2. Δημιουργία της λίστας ταινιών
                         VBox actorMoviesContent = buildMovieListUI("🎬 Movies with " + actor.getName() + " 🎬", movies);
-                        lastMovieListView = actorMoviesContent;
-                        root.setCenter(actorMoviesContent);
+
+                        // 3. Σύνθεση τελικού Layout (Κουμπί + Λίστα)
+                        VBox finalLayout = new VBox(15, backToMovieBtn, actorMoviesContent);
+                        finalLayout.setPadding(new Insets(20));
+                        finalLayout.setAlignment(Pos.TOP_LEFT);
+
+                        lastMovieListView = finalLayout;
+                        root.setCenter(finalLayout);
                     }
-
                 });
-
             } catch (Exception ex) {
-                Label errorLabel = new Label("Could not fetch movies for actor. Check API key and network connection.");
-                errorLabel.setStyle("-fx-text-fill: red; -fx-font-size: 18px;");
-                VBox errorBox = new VBox(errorLabel);
-                errorBox.setAlignment(Pos.CENTER);
-                root.setCenter(errorBox);
+                ex.printStackTrace();
             }
         }).start();
     }
