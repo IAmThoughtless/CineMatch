@@ -57,7 +57,8 @@ public class HelloApplication extends Application {
     private static final HttpClient client = HttpClient.newHttpClient();
 
     private VBox whatsHotContainer;
-    private VBox lastMovieListView;
+    private javafx.scene.Node lastMovieListView;
+    private java.util.Stack<javafx.scene.Node> navigationStack = new java.util.Stack<>();
     private BorderPane root;
     private int currentQuestionIndex = 0;
     private int score = 0;
@@ -748,9 +749,7 @@ public class HelloApplication extends Application {
 
             for (int i = 0; i < limit; i++) {
                 Movie m = movieResponse.results.get(i);
-
                 ImageView posterView = createPosterImageView(m.getPoster_path());
-
                 posterView.setFitWidth(80);
                 posterView.setFitHeight(120);
 
@@ -770,17 +769,13 @@ public class HelloApplication extends Application {
                 HBox movieCard = new HBox(20.0, posterView, textContent);
                 movieCard.setAlignment(Pos.CENTER_LEFT);
                 HBox.setHgrow(textContent, Priority.ALWAYS);
-
-
                 movieCard.setStyle("-fx-cursor: hand; -fx-background-color: transparent;");
 
-
+                // --- CLICK ACTION ---
                 movieCard.setOnMouseClicked(event -> showMovieDetails(m));
-
 
                 movieCard.setOnMouseEntered(e -> movieCard.setStyle("-fx-cursor: hand; -fx-background-color: rgba(255,255,255,0.1); -fx-background-radius: 10;"));
                 movieCard.setOnMouseExited(e -> movieCard.setStyle("-fx-cursor: hand; -fx-background-color: transparent;"));
-
 
                 movieListView.getChildren().add(movieCard);
 
@@ -801,6 +796,11 @@ public class HelloApplication extends Application {
         VBox finalLayout = new VBox(20, titleLabel, scrollPane);
         finalLayout.setPadding(new Insets(30));
         finalLayout.setAlignment(Pos.TOP_CENTER);
+
+        // --- ΚΡΙΣΙΜΗ ΠΡΟΣΘΗΚΗ ---
+        // Ενημερώνουμε το ιστορικό με αυτό το layout,
+        // ώστε το κουμπί Back της ταινίας να ξέρει να επιστρέψει εδώ.
+        lastMovieListView = finalLayout;
 
         return finalLayout;
     }
@@ -933,6 +933,7 @@ public class HelloApplication extends Application {
         // --- HOME BUTTON (Reset history) ---
         Button homeBtn = new Button("Home Page");
         homeBtn.setOnAction(event -> {
+            navigationStack.clear();
             lastMovieListView = null; // ΚΑΘΑΡΙΣΜΟΣ ΙΣΤΟΡΙΚΟΥ
             showHomeView();
         });
@@ -1420,12 +1421,17 @@ public class HelloApplication extends Application {
     private File selectedImageFile;
 
     private void showMovieDetails(Movie initialMovieData) {
+        if (lastMovieListView != null) {
+            navigationStack.push(lastMovieListView);
+            lastMovieListView = null; // Καθαρίζουμε τη μνήμη για την επόμενη σελίδα
+        }
+
         // 1. Header & Back Button
         Button backBtn = new Button("⬅ Back");
         backBtn.setStyle("-fx-background-color: transparent; -fx-text-fill: #E50914; -fx-font-size: 16px; -fx-font-weight: bold; -fx-cursor: hand;");
         backBtn.setOnAction(e -> {
-            if (lastMovieListView != null) {
-                root.setCenter(lastMovieListView);
+            if (!navigationStack.isEmpty()) {
+                root.setCenter(navigationStack.pop());
             } else {
                 showHomeView();
             }
@@ -1600,7 +1606,9 @@ public class HelloApplication extends Application {
                         // Cast Update
                         castBox.getChildren().clear();
                         if (fullMovie.getCast() != null) {
-                            for (Movie.CastMember actor : fullMovie.getCast()) castBox.getChildren().add(createActorCard(actor, fullMovie));
+                            for (Movie.CastMember actor : fullMovie.getCast()) {
+                                castBox.getChildren().add(createActorCard(actor, fullMovie));
+                            }
                             if (!mainContent.getChildren().contains(castSection)) mainContent.getChildren().add(1, castSection);
                         }
 
@@ -1790,7 +1798,6 @@ public class HelloApplication extends Application {
                         VBox finalLayout = new VBox(15, backToMovieBtn, actorMoviesContent);
                         finalLayout.setPadding(new Insets(20));
                         finalLayout.setAlignment(Pos.TOP_LEFT);
-
                         lastMovieListView = finalLayout;
                         root.setCenter(finalLayout);
                     }
