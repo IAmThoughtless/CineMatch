@@ -84,6 +84,41 @@ public class MovieService {
         }
     }
 
+    public Movie.CastMember searchPerson(String name) {
+        try {
+            String encodedQuery = URLEncoder.encode(name, StandardCharsets.UTF_8);
+            String url = "https://api.themoviedb.org/3/search/person?api_key=" + tmdbApiKey + "&query=" + encodedQuery;
+
+            try (HttpClient client = HttpClient.newHttpClient()) {
+                HttpRequest request = HttpRequest.newBuilder()
+                        .uri(URI.create(url))
+                        .build();
+
+                HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+                if (response.statusCode() != 200) {
+                    System.err.println("Search Person API Request failed: " + response.statusCode());
+                    return null;
+                }
+
+                Gson gson = new Gson();
+                com.google.gson.JsonObject jsonObject = gson.fromJson(response.body(), com.google.gson.JsonObject.class);
+
+                if (jsonObject.has("results")) {
+                    com.google.gson.JsonArray results = jsonObject.getAsJsonArray("results");
+                    if (results.size() > 0) {
+                        return gson.fromJson(results.get(0), Movie.CastMember.class);
+                    }
+                }
+            }
+
+        } catch (Exception e) {
+            System.err.println("Error during person search: " + e.getMessage());
+            return null;
+        }
+        return null;
+    }
+
     public Movie getMovieDetails(Long movieId) {
         Movie movie = null;
         try {

@@ -1,20 +1,14 @@
 package com.cinematch.cinematchbackend.services;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
-import org.springframework.security.web.webauthn.api.Bytes;
-import org.springframework.stereotype.Service;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
-import org.springframework.http.MediaType;
 
+import java.io.IOException;
 import java.util.Base64;
 import java.util.List;
 import java.util.Map;
-
-import java.io.IOException;
-import java.util.List;
-
-
 
 @Service
 public class AIService {
@@ -48,7 +42,7 @@ public class AIService {
                                 "content", List.of(
                                         Map.of(
                                                 "type", "text",
-                                                "text", "Who is the celebrity in this image? Return ONLY the name and the similarity percentage."
+                                                "text", "Who is the actor that looks most like the person in this image? Even if the similarity is low, provide the closest match. Return ONLY the name and the similarity percentage."
                                         ),
                                         Map.of(
                                                 "type", "image_url",

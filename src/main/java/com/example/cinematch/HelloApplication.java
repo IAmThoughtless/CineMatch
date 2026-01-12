@@ -1756,7 +1756,14 @@ public class HelloApplication extends Application {
         // 1. Δημιουργία του Back Button
         Button backToMovieBtn = new Button("⬅ Back to " + previousMovie.getTitle());
         backToMovieBtn.setStyle("-fx-background-color: transparent; -fx-text-fill: #E50914; -fx-font-size: 16px; -fx-font-weight: bold; -fx-cursor: hand;");
-        backToMovieBtn.setOnAction(e -> showMovieDetails(previousMovie));
+        
+        // If previousMovie is a dummy movie (e.g. from AI Matcher), we should go back to the AI view
+        if (previousMovie.getTitle().equals("AI Matcher")) {
+            backToMovieBtn.setText("⬅ Back to AI Matcher");
+            backToMovieBtn.setOnAction(e -> showAIIntegrationView());
+        } else {
+            backToMovieBtn.setOnAction(e -> showMovieDetails(previousMovie));
+        }
 
         Label loadingLabel = new Label("Fetching movies for " + actor.getName() + "...");
         loadingLabel.setStyle("-fx-text-fill: white; -fx-font-size: 24px;");
@@ -2321,15 +2328,54 @@ public class HelloApplication extends Application {
                             resultsTitle.setStyle("-fx-text-fill: #E50914; -fx-font-size: 20px; -fx-font-weight: bold;");
                             resultsContainer.getChildren().add(resultsTitle);
 
-                            // Display string result directly
-                            Label resultLabel = new Label(response.body());
+                            // Parse JSON response
+                            com.google.gson.JsonObject jsonResponse = gson.fromJson(response.body(), com.google.gson.JsonObject.class);
+                            String aiResponse = jsonResponse.get("ai_response").getAsString();
+                            
+                            // Display AI text result
+                            Label resultLabel = new Label(aiResponse);
                             resultLabel.setStyle("-fx-text-fill: white; -fx-font-size: 16px; -fx-font-weight: bold;");
                             resultLabel.setWrapText(true);
                             resultLabel.setTextAlignment(TextAlignment.CENTER);
-                            resultLabel.setAlignment(Pos.CENTER); // Ensure label content is centered
-                            resultLabel.setMaxWidth(750); // Increased width
-                            
+                            resultLabel.setAlignment(Pos.CENTER);
+                            resultLabel.setMaxWidth(750);
                             resultsContainer.getChildren().add(resultLabel);
+
+                            // If actor details are present, show the actor card
+                            if (jsonResponse.has("actor_details")) {
+                                Movie.CastMember actor = gson.fromJson(jsonResponse.get("actor_details"), Movie.CastMember.class);
+                                
+                                VBox actorCard = new VBox(10);
+                                actorCard.setAlignment(Pos.CENTER);
+                                actorCard.setPadding(new Insets(20));
+                                actorCard.setStyle("-fx-background-color: rgba(255,255,255,0.1); -fx-background-radius: 10;");
+                                
+                                ImageView actorImg = new ImageView();
+                                actorImg.setFitWidth(150);
+                                actorImg.setFitHeight(225);
+                                actorImg.setPreserveRatio(true);
+                                
+                                if (actor.getProfilePath() != null) {
+                                    actorImg.setImage(new Image("https://image.tmdb.org/t/p/w185" + actor.getProfilePath(), true));
+                                }
+                                
+                                Label actorName = new Label(actor.getName());
+                                actorName.setStyle("-fx-text-fill: white; -fx-font-size: 18px; -fx-font-weight: bold;");
+                                
+                                Button viewMoviesBtn = new Button("View Movies");
+                                viewMoviesBtn.setStyle("-fx-background-color: #E50914; -fx-text-fill: white; -fx-cursor: hand;");
+                                viewMoviesBtn.setOnAction(ev -> {
+                                    // We need a dummy movie object to pass to showMoviesByActor for the "Back" button functionality
+                                    // Or we can modify showMoviesByActor to handle null previousMovie
+                                    Movie dummyMovie = new Movie();
+                                    dummyMovie.setTitle("AI Matcher");
+                                    showMoviesByActor(actor, dummyMovie);
+                                });
+                                
+                                actorCard.getChildren().addAll(actorImg, actorName, viewMoviesBtn);
+                                resultsContainer.getChildren().add(actorCard);
+                            }
+
                             resultsContainer.setVisible(true);
                         } else {
                             statusLabel.setStyle("-fx-text-fill: #E50914;");
