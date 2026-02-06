@@ -1,6 +1,9 @@
 # CineMatch
 
-CineMatch is a desktop application for movie discovery and recommendation. Built with JavaFX and Spring Boot, it leverages The Movie Database (TMDB) API to provide users with up-to-date movie information, search capabilities, and personalized recommendations.
+CineMatch is a desktop movie recommendation application designed to help users discover films, write reviews, and receive personalized suggestions. The system integrates external APIs such as The Movie Database (TMDB), Google Gemini, and Hugging Face to provide real-time movie data, AI-generated quiz questions, and celebrity lookalike features.
+The application was developed using JavaFX for the graphical user interface and Spring Boot for backend services, with MySQL used as the database. Users can create accounts, search for movies, filter by genre, rate and review films, and participate in quizzes.
+The purpose of this project was to explore full-stack desktop development, API integration, and database management while delivering an interactive entertainment platform. The final system demonstrates the successful combination of multiple technologies to provide a modern and user-friendly movie discovery experience.
+
 
 ## Features
 
